@@ -205,6 +205,35 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Docker
+docker-compose.override.yml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Media
+media/
+
+# Static files
+staticfiles/
+
+# Node modules
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# HelpDesk-AI specific
+ollama_models/
+*.sqlite3
+
 # Ruff stuff:
 .ruff_cache/
 
