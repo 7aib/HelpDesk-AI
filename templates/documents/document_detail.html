@@ -1,0 +1,90 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ document.title }} - {{ app_name }}{% endblock %}
+
+{% block page_title %}{{ document.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <span class="badge bg-light text-dark me-2">{{ document.document_type|upper }}</span>
+                        {% if document.status == 'completed' %}
+                        <span class="badge bg-success">Processed</span>
+                        {% elif document.status == 'processing' %}
+                        <span class="badge bg-warning">Processing...</span>
+                        {% elif document.status == 'failed' %}
+                        <span class="badge bg-danger">Failed</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Pending</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'documents:list' document.knowledge_base.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Back
+                    </a>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1">Size</p>
+                        <p>{{ document.file_size_display }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1">Pages</p>
+                        <p>{{ document.page_count|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1">Chunks</p>
+                        <p>{{ document.chunk_count }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1">Uploaded</p>
+                        <p>{{ document.created_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                </div>
+
+                {% if document.error_message %}
+                <div class="alert alert-danger mt-3">
+                    <strong>Error:</strong> {{ document.error_message }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if chunks %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Chunks ({{ chunks|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% for chunk in chunks %}
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <small class="text-muted">Chunk {{ chunk.chunk_index }}{% if chunk.page_number %} &middot; Page {{ chunk.page_number }}{% endif %}</small>
+                        <small class="text-muted">{{ chunk.token_count }} tokens</small>
+                    </div>
+                    <p class="mb-0 small">{{ chunk.content|truncatewords:50 }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">Actions</h6></div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'documents:delete' document.pk document.knowledge_base.pk %}" class="btn btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i> Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

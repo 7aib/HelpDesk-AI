@@ -1,0 +1,152 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Chatbot - {{ app_name }}{% endblock %}
+
+{% block page_title %}{% if form.instance.pk %}Edit Chatbot{% else %}Create Chatbot{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post">
+            {% csrf_token %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control {% if form.name.errors %}is-invalid{% endif %}"
+                               id="id_name" value="{{ form.name.value|default:'' }}" required placeholder="e.g., Support Bot">
+                        {% if form.name.errors %}<div class="invalid-feedback">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea name="description" class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+                                  id="id_description" rows="2" placeholder="What does this chatbot do?">{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}<div class="invalid-feedback">{{ form.description.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_system_prompt" class="form-label">System Prompt</label>
+                        <textarea name="system_prompt" class="form-control {% if form.system_prompt.errors %}is-invalid{% endif %}"
+                                  id="id_system_prompt" rows="4" placeholder="Instructions for the AI...">{{ form.system_prompt.value|default:'' }}</textarea>
+                        {% if form.system_prompt.errors %}<div class="invalid-feedback">{{ form.system_prompt.errors.0 }}</div>{% endif %}
+                        <div class="form-text">Instruct the AI how to behave and answer questions.</div>
+                    </div>
+                    {% if form.status %}
+                    <div class="mb-3">
+                        <label for="id_status" class="form-label">Status</label>
+                        <select name="status" class="form-select {% if form.status.errors %}is-invalid{% endif %}" id="id_status">
+                            {% for value, label in form.fields.status.choices %}
+                            <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.status.errors %}<div class="invalid-feedback">{{ form.status.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Model Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_llm_model" class="form-label">LLM Model</label>
+                            <select name="llm_model" class="form-select {% if form.llm_model.errors %}is-invalid{% endif %}" id="id_llm_model">
+                                {% for value, label in form.fields.llm_model.choices %}
+                                <option value="{{ value }}" {% if form.llm_model.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.llm_model.errors %}<div class="invalid-feedback">{{ form.llm_model.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_embedding_model" class="form-label">Embedding Model</label>
+                            <select name="embedding_model" class="form-select {% if form.embedding_model.errors %}is-invalid{% endif %}" id="id_embedding_model">
+                                {% for value, label in form.fields.embedding_model.choices %}
+                                <option value="{{ value }}" {% if form.embedding_model.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.embedding_model.errors %}<div class="invalid-feedback">{{ form.embedding_model.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="id_temperature" class="form-label">Temperature</label>
+                            <input type="number" name="temperature" class="form-control {% if form.temperature.errors %}is-invalid{% endif %}"
+                                   id="id_temperature" value="{{ form.temperature.value|default:'0.7' }}" step="0.1" min="0" max="2">
+                            {% if form.temperature.errors %}<div class="invalid-feedback">{{ form.temperature.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="id_top_p" class="form-label">Top P</label>
+                            <input type="number" name="top_p" class="form-control {% if form.top_p.errors %}is-invalid{% endif %}"
+                                   id="id_top_p" value="{{ form.top_p.value|default:'0.9' }}" step="0.1" min="0" max="1">
+                            {% if form.top_p.errors %}<div class="invalid-feedback">{{ form.top_p.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="id_top_k" class="form-label">Top K</label>
+                            <input type="number" name="top_k" class="form-control {% if form.top_k.errors %}is-invalid{% endif %}"
+                                   id="id_top_k" value="{{ form.top_k.value|default:'5' }}" min="1" max="20">
+                            {% if form.top_k.errors %}<div class="invalid-feedback">{{ form.top_k.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_max_context_length" class="form-label">Max Context Length</label>
+                            <input type="number" name="max_context_length" class="form-control {% if form.max_context_length.errors %}is-invalid{% endif %}"
+                                   id="id_max_context_length" value="{{ form.max_context_length.value|default:'4096' }}" min="256" max="128000">
+                            {% if form.max_context_length.errors %}<div class="invalid-feedback">{{ form.max_context_length.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Chunking Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_chunk_size" class="form-label">Chunk Size</label>
+                            <input type="number" name="chunk_size" class="form-control {% if form.chunk_size.errors %}is-invalid{% endif %}"
+                                   id="id_chunk_size" value="{{ form.chunk_size.value|default:'500' }}" min="100" max="5000">
+                            {% if form.chunk_size.errors %}<div class="invalid-feedback">{{ form.chunk_size.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_chunk_overlap" class="form-label">Chunk Overlap</label>
+                            <input type="number" name="chunk_overlap" class="form-control {% if form.chunk_overlap.errors %}is-invalid{% endif %}"
+                                   id="id_chunk_overlap" value="{{ form.chunk_overlap.value|default:'50' }}" min="0" max="500">
+                            {% if form.chunk_overlap.errors %}<div class="invalid-feedback">{{ form.chunk_overlap.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i> {% if form.instance.pk %}Save Changes{% else %}Create Chatbot{% endif %}
+                </button>
+                <a href="{% url 'chatbots:list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6><i class="bi bi-info-circle me-1"></i> Tips</h6>
+                <ul class="small text-muted mb-0">
+                    <li>Use a clear, descriptive name</li>
+                    <li>Write detailed system prompts for better results</li>
+                    <li>Lower temperature = more focused answers</li>
+                    <li>Higher temperature = more creative answers</li>
+                    <li>Top K controls how many chunks to consider</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

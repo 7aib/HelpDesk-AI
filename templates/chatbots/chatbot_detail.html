@@ -1,0 +1,146 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ chatbot.name }} - {{ app_name }}{% endblock %}
+
+{% block page_title %}{{ chatbot.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        {% if chatbot.is_active %}
+                        <span class="badge bg-success mb-2">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary mb-2">{{ chatbot.get_status_display }}</span>
+                        {% endif %}
+                        <p class="text-muted mb-0">{{ chatbot.description|default:"No description" }}</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-chat-dots me-1"></i> Chat
+                        </a>
+                        <a href="{% url 'chatbots:update' chatbot.pk %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-pencil me-1"></i> Edit
+                        </a>
+                        <form method="post" action="{% url 'chatbots:toggle' chatbot.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-{% if chatbot.is_active %}warning{% else %}success{% endif %} btn-sm">
+                                <i class="bi bi-{% if chatbot.is_active %}pause{% else %}play{% endif %}"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row text-center g-3 mt-2">
+                    <div class="col">
+                        <div class="bg-light rounded-3 p-3">
+                            <div class="fs-4 fw-bold text-primary">{{ chatbot.document_count }}</div>
+                            <div class="text-muted small">Documents</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="bg-light rounded-3 p-3">
+                            <div class="fs-4 fw-bold text-info">{{ chatbot.chunk_count }}</div>
+                            <div class="text-muted small">Chunks</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="bg-light rounded-3 p-3">
+                            <div class="fs-4 fw-bold text-success">{{ chatbot.total_conversations }}</div>
+                            <div class="text-muted small">Conversations</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="bg-light rounded-3 p-3">
+                            <div class="fs-4 fw-bold text-warning">{{ chatbot.total_messages }}</div>
+                            <div class="text-muted small">Messages</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Knowledge Base</h5>
+                {% if knowledge_base %}
+                <a href="{% url 'knowledge:detail' knowledge_base.pk %}" class="btn btn-sm btn-outline-primary">Manage</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if knowledge_base %}
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>{{ knowledge_base.name }}</h6>
+                        <p class="text-muted small mb-0">{{ knowledge_base.total_documents }} documents &middot; {{ knowledge_base.total_chunks }} chunks &middot; {{ knowledge_base.total_tokens }} tokens</p>
+                    </div>
+                    <a href="{% url 'documents:list' knowledge_base.pk %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-file-earmark me-1"></i> Documents
+                    </a>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Knowledge base will be created automatically.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Conversations</h5>
+                <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-sm btn-outline-primary">New Chat</a>
+            </div>
+            <div class="card-body p-0">
+                {% with conversations=chatbot.conversations.all %}
+                {% if conversations %}
+                <div class="list-group list-group-flush">
+                    {% for conv in conversations|slice:":5" %}
+                    <a href="{% url 'chat:conversation' conv.pk %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <span>{{ conv.title|default:conv.session_id }}</span>
+                            <small class="text-muted">{{ conv.last_message_at|timesince }} ago</small>
+                        </div>
+                        <small class="text-muted">{{ conv.message_count }} messages</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3 mb-0">No conversations yet</p>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">Model Settings</h6></div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><td class="text-muted">LLM</td><td>{{ chatbot.llm_model }}</td></tr>
+                    <tr><td class="text-muted">Embedding</td><td>{{ chatbot.embedding_model }}</td></tr>
+                    <tr><td class="text-muted">Temperature</td><td>{{ chatbot.temperature }}</td></tr>
+                    <tr><td class="text-muted">Top P</td><td>{{ chatbot.top_p }}</td></tr>
+                    <tr><td class="text-muted">Top K</td><td>{{ chatbot.top_k }}</td></tr>
+                    <tr><td class="text-muted">Max Context</td><td>{{ chatbot.max_context_length }}</td></tr>
+                    <tr><td class="text-muted">Chunk Size</td><td>{{ chatbot.chunk_size }}</td></tr>
+                    <tr><td class="text-muted">Chunk Overlap</td><td>{{ chatbot.chunk_overlap }}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">Actions</h6></div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-primary"><i class="bi bi-chat me-1"></i> Start Chat</a>
+                    <a href="{% url 'chatbots:update' chatbot.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i> Edit</a>
+                    <a href="{% url 'chatbots:delete' chatbot.pk %}" class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i> Delete</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

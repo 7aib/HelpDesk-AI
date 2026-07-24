@@ -1,0 +1,50 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ conversation.title|default:"Chat" }} - {{ app_name }}{% endblock %}
+
+{% block page_title %}{{ conversation.title|default:"Chat" }}{% endblock %}
+
+{% block content %}
+<div class="row h-100" style="height: calc(100vh - 180px);">
+    <div class="col-md-3 border-end">
+        <a href="{% url 'chat:chat' conversation.chatbot.pk %}" class="btn btn-primary btn-sm w-100 mb-3">
+            <i class="bi bi-plus me-1"></i> New Chat
+        </a>
+        <div class="list-group list-group-flush">
+            {% for conv in conversation.chatbot.conversations.all %}
+            <a href="{% url 'chat:conversation' conv.pk %}" class="list-group-item list-group-item-action {% if conv.pk == conversation.pk %}active{% endif %}">
+                <div class="text-truncate">{{ conv.title|default:"New Chat" }}</div>
+                <small>{{ conv.message_count }} messages</small>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="col-md-9 d-flex flex-column">
+        <div class="flex-grow-1 overflow-auto p-3" style="max-height: calc(100vh - 280px);">
+            {% for msg in messages %}
+            {% include "chat/partials/message.html" with message=msg %}
+            {% endfor %}
+        </div>
+        <div class="border-top p-3 bg-white">
+            <form id="chat-form" onsubmit="sendMessage(event)">
+                <div class="input-group">
+                    <input type="text" id="message-input" class="form-control" placeholder="Type your message..." autocomplete="off" required>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+    if (!message) return;
+    // Similar to chat.html implementation
+    input.value = '';
+}
+</script>
+{% endblock %}

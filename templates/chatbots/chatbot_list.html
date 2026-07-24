@@ -1,0 +1,108 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}My Chatbots - {{ app_name }}{% endblock %}
+
+{% block page_title %}My Chatbots{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <form class="d-flex gap-2" method="get">
+        <input type="text" name="q" class="form-control" placeholder="Search chatbots..." value="{{ search_query }}">
+        <select name="status" class="form-select" style="width: auto;">
+            <option value="">All Status</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+            <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+        </select>
+        <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+    </form>
+    <a href="{% url 'chatbots:create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> New Chatbot
+    </a>
+</div>
+
+{% if chatbots %}
+<div class="row g-4">
+    {% for chatbot in chatbots %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">
+                            <a href="{% url 'chatbots:detail' chatbot.pk %}" class="text-decoration-none">{{ chatbot.name }}</a>
+                        </h5>
+                        <p class="text-muted small mb-0">{{ chatbot.description|truncatewords:12|default:"No description" }}</p>
+                    </div>
+                    {% if chatbot.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ chatbot.get_status_display }}</span>
+                    {% endif %}
+                </div>
+                <div class="row text-center mb-3">
+                    <div class="col">
+                        <div class="text-muted small">Documents</div>
+                        <div class="fw-semibold">{{ chatbot.document_count }}</div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small">Chunks</div>
+                        <div class="fw-semibold">{{ chatbot.chunk_count }}</div>
+                    </div>
+                    <div class="col">
+                        <div class="text-muted small">Conversations</div>
+                        <div class="fw-semibold">{{ chatbot.total_conversations }}</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-primary btn-sm flex-fill">
+                        <i class="bi bi-chat-dots me-1"></i> Chat
+                    </a>
+                    <a href="{% url 'chatbots:detail' chatbot.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{% url 'chatbots:update' chatbot.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-top-0">
+                <small class="text-muted">
+                    <i class="bi bi-cpu me-1"></i> {{ chatbot.llm_model }} &middot;
+                    <i class="bi bi-clock me-1"></i> {{ chatbot.created_at|timesince }} ago
+                </small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-robot text-muted" style="font-size: 4rem;"></i>
+    <h4 class="mt-3">No chatbots found</h4>
+    <p class="text-muted">{% if search_query %}Try a different search term{% else %}Create your first chatbot to get started{% endif %}</p>
+    <a href="{% url 'chatbots:create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Create Chatbot
+    </a>
+</div>
+{% endif %}
+{% endblock %}

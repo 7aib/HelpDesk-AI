@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body %}
+<div class="d-flex" style="min-height: 100vh;">
+    <!-- Sidebar -->
+    <nav class="bg-dark text-white d-flex flex-column" style="width: 260px; min-height: 100vh;">
+        <div class="p-3 flex-grow-1">
+            <a href="{% url 'accounts:dashboard' %}" class="text-white text-decoration-none d-flex align-items-center mb-4">
+                <i class="bi bi-headset fs-4 me-2"></i>
+                <span class="fs-5 fw-bold">{{ app_name }}</span>
+            </a>
+            <ul class="nav flex-column">
+                <li class="nav-item mb-1">
+                    <a href="{% url 'accounts:dashboard' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'dashboard' %}active bg-primary bg-opacity-25{% endif %}">
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a href="{% url 'chatbots:list' %}" class="nav-link text-white {% if 'chatbot' in request.resolver_match.url_name %}active bg-primary bg-opacity-25{% endif %}">
+                        <i class="bi bi-robot me-2"></i> My Chatbots
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a href="{% url 'accounts:profile' %}" class="nav-link text-white {% if 'profile' in request.resolver_match.url_name %}active bg-primary bg-opacity-25{% endif %}">
+                        <i class="bi bi-person me-2"></i> Profile
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a href="{% url 'accounts:settings' %}" class="nav-link text-white {% if 'settings' in request.resolver_match.url_name %}active bg-primary bg-opacity-25{% endif %}">
+                        <i class="bi bi-gear me-2"></i> Settings
+                    </a>
+                </li>
+                {% if request.user.is_staff %}
+                <li class="nav-item mb-1">
+                    <a href="{% url 'admin:index' %}" class="nav-link text-white">
+                        <i class="bi bi-shield-lock me-2"></i> Admin
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="mt-auto p-3 border-top border-secondary">
+            <div class="d-flex align-items-center">
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">
+                    <span class="text-white fw-semibold">{{ request.user.get_initials }}</span>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="text-white small fw-semibold">{{ request.user.get_full_name }}</div>
+                    <div class="text-white-50 small">{{ request.user.email }}</div>
+                </div>
+                <a href="{% url 'account_logout' %}" class="text-white-50" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-grow-1 bg-light">
+        <!-- Top Bar -->
+        <div class="bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">{% block page_title %}{% endblock %}</h4>
+            <div class="d-flex align-items-center">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 px-3 mb-0 me-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close btn-close-sm py-2" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="p-4">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

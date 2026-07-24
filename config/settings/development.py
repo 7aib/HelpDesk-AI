@@ -49,6 +49,13 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
 # Disable email verification in development
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
+# Use in-memory cache in development (Redis not required)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
 # Logging
 LOGGING["root"]["level"] = "DEBUG"  # noqa: F405
 LOGGING["loggers"]["apps"]["level"] = "DEBUG"  # noqa: F405

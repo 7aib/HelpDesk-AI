@@ -1,0 +1,119 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Edit Profile - {{ app_name }}{% endblock %}
+
+{% block page_title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Edit Profile</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_first_name" class="form-label">First Name</label>
+                            <input type="text" name="first_name" class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                                   id="id_first_name" value="{{ form.first_name.value|default:'' }}">
+                            {% if form.first_name.errors %}
+                            <div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_last_name" class="form-label">Last Name</label>
+                            <input type="text" name="last_name" class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                                   id="id_last_name" value="{{ form.last_name.value|default:'' }}">
+                            {% if form.last_name.errors %}
+                            <div class="invalid-feedback">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_bio" class="form-label">Bio</label>
+                        <textarea name="bio" class="form-control {% if form.bio.errors %}is-invalid{% endif %}"
+                                  id="id_bio" rows="3">{{ form.bio.value|default:'' }}</textarea>
+                        {% if form.bio.errors %}
+                        <div class="invalid-feedback">{{ form.bio.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_company" class="form-label">Company</label>
+                            <input type="text" name="company" class="form-control {% if form.company.errors %}is-invalid{% endif %}"
+                                   id="id_company" value="{{ form.company.value|default:'' }}">
+                            {% if form.company.errors %}
+                            <div class="invalid-feedback">{{ form.company.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_job_title" class="form-label">Job Title</label>
+                            <input type="text" name="job_title" class="form-control {% if form.job_title.errors %}is-invalid{% endif %}"
+                                   id="id_job_title" value="{{ form.job_title.value|default:'' }}">
+                            {% if form.job_title.errors %}
+                            <div class="invalid-feedback">{{ form.job_title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_phone" class="form-label">Phone</label>
+                            <input type="text" name="phone" class="form-control {% if form.phone.errors %}is-invalid{% endif %}"
+                                   id="id_phone" value="{{ form.phone.value|default:'' }}">
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback">{{ form.phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_timezone" class="form-label">Timezone</label>
+                            <select name="timezone" class="form-select {% if form.timezone.errors %}is-invalid{% endif %}"
+                                    id="id_timezone">
+                                {% for value, label in form.fields.timezone.choices %}
+                                <option value="{{ value }}" {% if form.timezone.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.timezone.errors %}
+                            <div class="invalid-feedback">{{ form.timezone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_avatar" class="form-label">Avatar</label>
+                        <input type="file" name="avatar" class="form-control {% if form.avatar.errors %}is-invalid{% endif %}"
+                               id="id_avatar" accept="image/*">
+                        {% if form.avatar.errors %}
+                        <div class="invalid-feedback">{{ form.avatar.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Save Changes
+                        </button>
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <span class="text-white fs-3 fw-semibold">{{ request.user.get_initials }}</span>
+                </div>
+                <h5>{{ request.user.get_full_name }}</h5>
+                <p class="text-muted">{{ request.user.email }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

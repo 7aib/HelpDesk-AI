@@ -1,0 +1,55 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Upload Document - {{ app_name }}{% endblock %}
+
+{% block page_title %}Upload Document{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="id_title" class="form-label">Document Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                               id="id_title" value="{{ form.title.value|default:'' }}" required placeholder="e.g., Product FAQ">
+                        {% if form.title.errors %}<div class="invalid-feedback">{{ form.title.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_file" class="form-label">File <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control {% if form.file.errors %}is-invalid{% endif %}"
+                               id="id_file" required accept=".pdf,.docx,.doc,.txt,.md">
+                        {% if form.file.errors %}<div class="invalid-feedback">{{ form.file.errors.0 }}</div>{% endif %}
+                        <div class="form-text">Supported formats: PDF, DOCX, TXT, Markdown</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i> Upload & Process
+                        </button>
+                        <a href="{% url 'documents:list' knowledge_base.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6><i class="bi bi-info-circle me-1"></i> Supported Formats</h6>
+                <ul class="small text-muted mb-0">
+                    <li><strong>PDF</strong> - Text extraction via PyMuPDF</li>
+                    <li><strong>DOCX</strong> - Microsoft Word documents</li>
+                    <li><strong>TXT</strong> - Plain text files</li>
+                    <li><strong>Markdown</strong> - .md files</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
