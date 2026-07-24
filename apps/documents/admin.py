@@ -4,7 +4,7 @@ Admin configuration for HelpDesk-AI documents app.
 
 from django.contrib import admin
 
-from .models import Document, DocumentProcessLog
+from .models import Document, DocumentChunk, DocumentProcessLog
 
 
 @admin.register(Document)
@@ -73,3 +73,32 @@ class DocumentProcessLogAdmin(admin.ModelAdmin):
         "created_at",
     ]
     ordering = ["-created_at"]
+
+
+@admin.register(DocumentChunk)
+class DocumentChunkAdmin(admin.ModelAdmin):
+    """Admin for DocumentChunk model."""
+
+    list_display = [
+        "document",
+        "chunk_index",
+        "page_number",
+        "token_count",
+        "created_at",
+    ]
+    list_filter = [
+        "document__document_type",
+    ]
+    search_fields = [
+        "content",
+        "document__title",
+    ]
+    readonly_fields = [
+        "id",
+        "embedding",
+        "chunk_index",
+        "page_number",
+        "token_count",
+        "created_at",
+    ]
+    ordering = ["document", "chunk_index"]

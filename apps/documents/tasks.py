@@ -98,7 +98,7 @@ def delete_document_task(document_id: str) -> dict[str, str]:
         document = Document.objects.get(id=document_id)
         
         # Delete associated chunks
-        from apps.knowledge.models import DocumentChunk
+        from apps.documents.models import DocumentChunk
         
         DocumentChunk.objects.filter(document=document).delete()
         

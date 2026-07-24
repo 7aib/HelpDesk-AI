@@ -102,8 +102,8 @@ def get_system_stats() -> dict[str, Any]:
     """
     from apps.chatbots.models import Chatbot
     from apps.chat.models import Conversation, Message
-    from apps.documents.models import Document
-    from apps.knowledge.models import KnowledgeBase, DocumentChunk
+    from apps.documents.models import Document, DocumentChunk
+    from apps.knowledge.models import KnowledgeBase
 
     stats = {
         "total_chatbots": Chatbot.objects.count(),

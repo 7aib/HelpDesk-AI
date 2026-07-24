@@ -53,10 +53,12 @@ class KnowledgeBase(BaseModel):
 
     def update_stats(self):
         """Update knowledge base statistics."""
-        self.total_documents = self.documents.count()
         from django.db.models import Sum
 
-        chunk_stats = DocumentChunk.objects.filter(
+        self.total_documents = self.documents.count()
+        chunk_stats = self.documents.model._meta.apps.get_model(
+            "documents", "DocumentChunk"
+        ).objects.filter(
             document__knowledge_base=self
         ).aggregate(
             total_chunks=models.Count("id"),
@@ -65,56 +67,6 @@ class KnowledgeBase(BaseModel):
         self.total_chunks = chunk_stats["total_chunks"] or 0
         self.total_tokens = chunk_stats["total_tokens"] or 0
         self.save(update_fields=["total_documents", "total_chunks", "total_tokens"])
-
-
-class DocumentChunk(BaseModel):
-    """
-    Document chunk model for HelpDesk-AI.
-    
-    Stores individual chunks of documents with their embeddings
-    for vector search.
-    """
-
-    document = models.ForeignKey(
-        "documents.Document",
-        on_delete=models.CASCADE,
-        related_name="chunks",
-        help_text="The document this chunk belongs to.",
-    )
-    content = models.TextField(
-        help_text="The text content of the chunk.",
-    )
-    embedding = VectorField(
-        dimensions=384,
-        null=True,
-        blank=True,
-        help_text="Vector embedding of the chunk content.",
-    )
-    chunk_index = models.IntegerField(
-        help_text="Index of this chunk in the document.",
-    )
-    page_number = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="Page number for PDF documents.",
-    )
-    token_count = models.IntegerField(
-        default=0,
-        help_text="Number of tokens in this chunk.",
-    )
-    metadata = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="Additional metadata for the chunk.",
-    )
-
-    class Meta:
-        verbose_name = "Document Chunk"
-        verbose_name_plural = "Document Chunks"
-        ordering = ["document", "chunk_index"]
-
-    def __str__(self) -> str:
-        return f"Chunk {self.chunk_index} of {self.document}"
 
 
 class QAPair(BaseModel):

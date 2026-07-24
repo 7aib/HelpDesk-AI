@@ -4,7 +4,7 @@ Admin configuration for HelpDesk-AI knowledge app.
 
 from django.contrib import admin
 
-from .models import DocumentChunk, KnowledgeBase, QAPair
+from .models import KnowledgeBase, QAPair
 
 
 @admin.register(KnowledgeBase)
@@ -32,35 +32,6 @@ class KnowledgeBaseAdmin(admin.ModelAdmin):
         "updated_at",
     ]
     ordering = ["-created_at"]
-
-
-@admin.register(DocumentChunk)
-class DocumentChunkAdmin(admin.ModelAdmin):
-    """Admin for DocumentChunk model."""
-
-    list_display = [
-        "document",
-        "chunk_index",
-        "page_number",
-        "token_count",
-        "created_at",
-    ]
-    list_filter = [
-        "document__document_type",
-    ]
-    search_fields = [
-        "content",
-        "document__title",
-    ]
-    readonly_fields = [
-        "id",
-        "embedding",
-        "chunk_index",
-        "page_number",
-        "token_count",
-        "created_at",
-    ]
-    ordering = ["document", "chunk_index"]
 
 
 @admin.register(QAPair)

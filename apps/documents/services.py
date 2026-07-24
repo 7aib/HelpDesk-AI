@@ -72,7 +72,7 @@ class DocumentProcessingService:
 
         # Step 6: Save chunks with embeddings
         logger.info("Saving chunks")
-        from apps.knowledge.models import DocumentChunk
+        from apps.documents.models import DocumentChunk
 
         chunk_objects = []
         for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):

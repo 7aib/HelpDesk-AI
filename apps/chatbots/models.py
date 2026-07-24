@@ -172,7 +172,7 @@ class Chatbot(BaseModel):
     @property
     def chunk_count(self) -> int:
         """Get the total number of chunks in the knowledge base."""
-        from apps.knowledge.models import DocumentChunk
+        from apps.documents.models import DocumentChunk
 
         return DocumentChunk.objects.filter(
             document__knowledge_base__chatbot=self,
