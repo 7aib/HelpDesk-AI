@@ -7,7 +7,7 @@ import uuid
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import DeleteView, ListView, TemplateView
 
@@ -35,6 +35,9 @@ class ChatView(LoginRequiredMixin, TemplateView):
             chatbot=context["chatbot"],
             user=self.request.user,
         ).order_by("-last_message_at")[:20]
+        context["knowledge_base"] = context["chatbot"].knowledge_base
+        kb = context["knowledge_base"]
+        context["has_documents"] = kb is not None and kb.total_documents > 0 if kb else False
         return context
 
 
@@ -57,24 +60,20 @@ class ConversationView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class ConversationDeleteView(LoginRequiredMixin, DeleteView):
+class ConversationDeleteView(LoginRequiredMixin, View):
     """
-    Delete a conversation.
+    Delete a conversation via POST.
     """
 
-    model = Conversation
-    template_name = "chat/conversation_confirm_delete.html"
-    context_object_name = "conversation"
-
-    def get_queryset(self):
-        """Filter by user's chatbots."""
-        return Conversation.objects.filter(
-            chatbot__owner=self.request.user,
+    def post(self, request: HttpRequest, pk: str) -> HttpResponse:
+        conversation = get_object_or_404(
+            Conversation,
+            id=pk,
+            chatbot__owner=request.user,
         )
-
-    def get_success_url(self):
-        """Redirect to chat view."""
-        return f"/chat/{self.object.chatbot.id}/"
+        chatbot_id = conversation.chatbot.id
+        conversation.delete()
+        return redirect(f"/chat/{chatbot_id}/")
 
 
 class Send_messageView(LoginRequiredMixin, View):
@@ -120,10 +119,26 @@ class Send_messageView(LoginRequiredMixin, View):
             content=message_content,
         )
 
-        # Get conversation history
+        # Get conversation history (exclude the message we just created)
         conversation_history = list(
-            conversation.messages.order_by("created_at").values("role", "content")[:-1]
+            conversation.messages.order_by("created_at")
+            .exclude(pk=user_message.pk)
+            .values("role", "content")
         )
+
+        # Check if chatbot has documents in its knowledge base
+        kb = chatbot.knowledge_base
+        if not kb or kb.total_documents == 0:
+            assistant_message = Message.objects.create(
+                conversation=conversation,
+                role=Message.Role.ASSISTANT,
+                content="This chatbot does not have any documents in its knowledge base. Please upload documents before chatting.",
+            )
+            return render(
+                request,
+                "chat/partials/message.html",
+                {"message": assistant_message, "conversation": conversation},
+            )
 
         # Generate response
         rag_pipeline = RAGPipeline()
@@ -225,10 +240,28 @@ class ChatStreamView(LoginRequiredMixin, View):
             content=message_content,
         )
 
-        # Get conversation history
+        # Get conversation history (exclude the message we just created)
         conversation_history = list(
-            conversation.messages.order_by("created_at").values("role", "content")[:-1]
+            conversation.messages.order_by("created_at")
+            .exclude(pk=user_message.pk)
+            .values("role", "content")
         )
+
+        # Check if chatbot has documents in its knowledge base
+        kb = chatbot.knowledge_base
+        if not kb or kb.total_documents == 0:
+            assistant_message = Message.objects.create(
+                conversation=conversation,
+                role=Message.Role.ASSISTANT,
+                content="This chatbot does not have any documents in its knowledge base. Please upload documents before chatting.",
+            )
+            def error_stream():
+                yield f"data: {json.dumps({'token': assistant_message.content})}\n\n"
+                yield f"data: {json.dumps({'done': True, 'conversation_id': str(conversation.id)})}\n\n"
+
+            response = StreamingHttpResponse(error_stream(), content_type="text/event-stream")
+            response["Cache-Control"] = "no-cache"
+            return response
 
         def generate():
             """Generate streaming response."""

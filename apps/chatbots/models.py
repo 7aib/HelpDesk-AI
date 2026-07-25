@@ -157,7 +157,11 @@ class Chatbot(BaseModel):
     @property
     def knowledge_base(self):
         """Get the knowledge base for this chatbot."""
-        return self.knowledge_bases.first()
+        from apps.knowledge.models import KnowledgeBase
+        try:
+            return KnowledgeBase.objects.get(chatbot=self)
+        except KnowledgeBase.DoesNotExist:
+            return None
 
     @property
     def document_count(self) -> int:

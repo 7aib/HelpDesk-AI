@@ -42,7 +42,7 @@ class EmbeddingService:
             try:
                 from sentence_transformers import SentenceTransformer
 
-                _model_cache[model_name] = SentenceTransformer(model_name)
+                _model_cache[model_name] = SentenceTransformer(model_name, device="cpu")
                 logger.info(f"Successfully loaded model: {model_name}")
             except Exception as e:
                 logger.error(f"Failed to load model {model_name}: {e}")

@@ -10,6 +10,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
+from .forms import ChatbotForm
 from .models import Chatbot
 from .selectors import get_chatbot_by_id, get_user_chatbots, search_chatbots
 from .services import ChatbotService
@@ -59,25 +60,21 @@ class ChatbotCreateView(LoginRequiredMixin, CreateView):
 
     model = Chatbot
     template_name = "chatbots/chatbot_form.html"
-    fields = [
-        "name",
-        "description",
-        "system_prompt",
-        "temperature",
-        "top_p",
-        "max_context_length",
-        "embedding_model",
-        "llm_model",
-        "top_k",
-        "chunk_size",
-        "chunk_overlap",
-    ]
+    form_class = ChatbotForm
     success_url = reverse_lazy("chatbots:list")
 
     def form_valid(self, form):
-        """Set the owner to the current user."""
+        """Set the owner to the current user and create knowledge base."""
         form.instance.owner = self.request.user
         response = super().form_valid(form)
+        from apps.knowledge.models import KnowledgeBase
+        KnowledgeBase.objects.get_or_create(
+            chatbot=self.object,
+            defaults={
+                "name": f"{self.object.name} Knowledge Base",
+                "description": f"Knowledge base for {self.object.name}",
+            },
+        )
         messages.success(self.request, f"Chatbot '{self.object.name}' created successfully.")
         return response
 
@@ -110,20 +107,7 @@ class ChatbotUpdateView(LoginRequiredMixin, UpdateView):
 
     model = Chatbot
     template_name = "chatbots/chatbot_form.html"
-    fields = [
-        "name",
-        "description",
-        "system_prompt",
-        "temperature",
-        "top_p",
-        "max_context_length",
-        "embedding_model",
-        "llm_model",
-        "top_k",
-        "chunk_size",
-        "chunk_overlap",
-        "status",
-    ]
+    form_class = ChatbotForm
 
     def get_success_url(self):
         """Redirect to chatbot detail."""
