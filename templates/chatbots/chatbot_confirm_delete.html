@@ -7,23 +7,23 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-8">
-        <div class="card border-0 shadow-sm border-danger">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Delete Chatbot</h5>
+        <div class="delete-card">
+            <div class="delete-card-header">
+                <h5><i class="bi bi-exclamation-triangle me-2"></i>Delete Chatbot</h5>
             </div>
-            <div class="card-body">
-                <p>Are you sure you want to delete <strong>{{ chatbot.name }}</strong>?</p>
-                <p class="text-muted">This will permanently delete:</p>
-                <ul class="text-muted">
-                    <li>The chatbot and its configuration</li>
-                    <li>All associated knowledge base data</li>
-                    <li>All documents and chunks</li>
-                    <li>All conversations and messages</li>
+            <div class="delete-card-body">
+                <p style="font-size: 0.95rem;">Are you sure you want to delete <strong>{{ chatbot.name }}</strong>?</p>
+                <p class="text-muted" style="font-size: 0.85rem;">This will permanently delete:</p>
+                <ul style="font-size: 0.85rem; color: var(--text-secondary); padding-left: 1.25rem;">
+                    <li class="mb-1">The chatbot and its configuration</li>
+                    <li class="mb-1">All associated knowledge base data</li>
+                    <li class="mb-1">All documents and chunks</li>
+                    <li class="mb-1">All conversations and messages</li>
                 </ul>
                 <form method="post">
                     {% csrf_token %}
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-danger">
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger px-4">
                             <i class="bi bi-trash me-1"></i> Yes, Delete
                         </button>
                         <a href="{% url 'chatbots:detail' chatbot.pk %}" class="btn btn-outline-secondary">Cancel</a>

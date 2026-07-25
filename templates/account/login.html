@@ -5,13 +5,13 @@
 {% block body %}
 <div class="auth-wrapper">
     <div class="auth-card">
-        <div class="card shadow-lg border-0">
-            <div class="card-body p-5">
+        <div class="card">
+            <div class="card-body">
                 <div class="text-center mb-4">
-                    <div class="brand-logo text-primary mb-2">
+                    <div class="brand-logo mb-3">
                         <i class="bi bi-headset"></i> {{ app_name }}
                     </div>
-                    <p class="text-muted">Sign in to your account</p>
+                    <p class="auth-subtitle">Welcome back! Sign in to your account.</p>
                 </div>
 
                 {% if form.non_field_errors %}
@@ -55,7 +55,7 @@
                             <input type="checkbox" name="remember" class="form-check-input" id="id_remember">
                             <label class="form-check-label" for="id_remember">Remember me</label>
                         </div>
-                        <a href="{% url 'account_reset_password' %}" class="text-decoration-none small">Forgot password?</a>
+                        <a href="{% url 'account_reset_password' %}" class="text-decoration-none small" style="color: var(--primary); font-weight: 500;">Forgot password?</a>
                     </div>
 
                     {% if redirect_field_value %}
@@ -68,9 +68,9 @@
                 </form>
 
                 <div class="text-center">
-                    <p class="text-muted mb-0">
+                    <p class="text-muted mb-0" style="font-size: 0.85rem;">
                         Don't have an account?
-                        <a href="{% url 'account_signup' %}" class="text-decoration-none fw-semibold">Sign Up</a>
+                        <a href="{% url 'account_signup' %}" class="text-decoration-none fw-semibold" style="color: var(--primary);">Sign Up</a>
                     </p>
                 </div>
             </div>

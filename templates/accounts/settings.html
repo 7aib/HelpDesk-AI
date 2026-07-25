@@ -7,49 +7,51 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-8">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Account Settings</h5>
+        <!-- Account Settings -->
+        <div class="detail-section mb-4">
+            <div class="detail-section-header">
+                <h5>Account Settings</h5>
             </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                    <div>
-                        <h6 class="mb-1">Email Address</h6>
-                        <p class="text-muted mb-0">{{ request.user.email }}</p>
+            <div class="detail-section-body">
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <h6>Email Address</h6>
+                        <p>{{ request.user.email }}</p>
                     </div>
-                    <span class="badge bg-success">Verified</span>
+                    <span class="badge-status active">Verified</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
-                    <div>
-                        <h6 class="mb-1">Password</h6>
-                        <p class="text-muted mb-0">Last changed: Never</p>
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <h6>Password</h6>
+                        <p>Last changed: Never</p>
                     </div>
                     <a href="{% url 'account_change_password' %}" class="btn btn-outline-primary btn-sm">Change</a>
                 </div>
-                <div class="d-flex justify-content-between align-items-center py-3">
-                    <div>
-                        <h6 class="mb-1">Two-Factor Authentication</h6>
-                        <p class="text-muted mb-0">Add an extra layer of security</p>
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <h6>Two-Factor Authentication</h6>
+                        <p>Add an extra layer of security</p>
                     </div>
-                    <span class="badge bg-secondary">Not Enabled</span>
+                    <span class="badge-status inactive">Not Enabled</span>
                 </div>
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Preferences</h5>
+        <!-- Preferences -->
+        <div class="detail-section">
+            <div class="detail-section-header">
+                <h5>Preferences</h5>
             </div>
-            <div class="card-body">
+            <div class="detail-section-body">
                 <div class="mb-3">
                     <label class="form-label">Language</label>
-                    <select class="form-select">
+                    <select class="form-select" style="max-width: 250px;">
                         <option selected>English</option>
                     </select>
                 </div>
-                <div class="mb-3">
+                <div class="mb-0">
                     <label class="form-label">Timezone</label>
-                    <select class="form-select">
+                    <select class="form-select" style="max-width: 250px;">
                         <option selected>{{ request.user.timezone }}</option>
                     </select>
                 </div>
@@ -58,12 +60,12 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Danger Zone</h5>
+        <div class="detail-section">
+            <div class="detail-section-header" style="border-bottom-color: #fecaca;">
+                <h6 style="color: #dc2626;"><i class="bi bi-exclamation-triangle me-1"></i> Danger Zone</h6>
             </div>
-            <div class="card-body">
-                <p class="text-muted small">Once you delete your account, there is no going back. Please be certain.</p>
+            <div class="detail-section-body">
+                <p class="text-muted" style="font-size: 0.8rem;">Once you delete your account, there is no going back. Please be certain.</p>
                 <a href="{% url 'accounts:account-delete' %}" class="btn btn-outline-danger w-100">
                     <i class="bi bi-trash me-1"></i> Delete Account
                 </a>

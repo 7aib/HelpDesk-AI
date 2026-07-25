@@ -2,54 +2,56 @@
 {% load static %}
 
 {% block body %}
-<div class="d-flex" style="min-height: 100vh;">
+<div style="display: flex; min-height: 100vh;">
     <!-- Sidebar -->
-    <nav class="bg-dark text-white d-flex flex-column" style="width: 260px; min-height: 100vh;">
-        <div class="p-3 flex-grow-1">
-            <a href="{% url 'accounts:dashboard' %}" class="text-white text-decoration-none d-flex align-items-center mb-4">
-                <i class="bi bi-headset fs-4 me-2"></i>
-                <span class="fs-5 fw-bold">{{ app_name }}</span>
+    <nav class="sidebar">
+        <a href="{% url 'accounts:dashboard' %}" class="sidebar-brand">
+            <div class="sidebar-brand-icon">
+                <i class="bi bi-headset"></i>
+            </div>
+            <span class="sidebar-brand-text">{{ app_name }}</span>
+        </a>
+
+        <div class="sidebar-nav">
+            <div class="sidebar-section-label">Main</div>
+
+            <a href="{% url 'accounts:dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-grid-1x2"></i>
+                <span>Dashboard</span>
             </a>
-            <ul class="nav flex-column">
-                <li class="nav-item mb-1">
-                    <a href="{% url 'accounts:dashboard' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'dashboard' %}active bg-primary bg-opacity-25{% endif %}">
-                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item mb-1">
-                    <a href="{% url 'chatbots:list' %}" class="nav-link text-white {% if 'chatbot' in request.resolver_match.url_name %}active bg-primary bg-opacity-25{% endif %}">
-                        <i class="bi bi-robot me-2"></i> My Chatbots
-                    </a>
-                </li>
-                <li class="nav-item mb-1">
-                    <a href="{% url 'accounts:profile' %}" class="nav-link text-white {% if 'profile' in request.resolver_match.url_name %}active bg-primary bg-opacity-25{% endif %}">
-                        <i class="bi bi-person me-2"></i> Profile
-                    </a>
-                </li>
-                <li class="nav-item mb-1">
-                    <a href="{% url 'accounts:settings' %}" class="nav-link text-white {% if 'settings' in request.resolver_match.url_name %}active bg-primary bg-opacity-25{% endif %}">
-                        <i class="bi bi-gear me-2"></i> Settings
-                    </a>
-                </li>
-                {% if request.user.is_staff %}
-                <li class="nav-item mb-1">
-                    <a href="{% url 'admin:index' %}" class="nav-link text-white">
-                        <i class="bi bi-shield-lock me-2"></i> Admin
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
+            <a href="{% url 'chatbots:list' %}" class="sidebar-link {% if 'chatbot' in request.resolver_match.url_name or request.resolver_match.url_name == 'list' %}active{% endif %}">
+                <i class="bi bi-robot"></i>
+                <span>My Chatbots</span>
+            </a>
+
+            <div class="sidebar-section-label">Account</div>
+
+            <a href="{% url 'accounts:profile' %}" class="sidebar-link {% if 'profile' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-person"></i>
+                <span>Profile</span>
+            </a>
+            <a href="{% url 'accounts:settings' %}" class="sidebar-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-gear"></i>
+                <span>Settings</span>
+            </a>
+
+            {% if request.user.is_staff %}
+            <div class="sidebar-section-label">Administration</div>
+            <a href="{% url 'admin:index' %}" class="sidebar-link">
+                <i class="bi bi-shield-lock"></i>
+                <span>Admin Panel</span>
+            </a>
+            {% endif %}
         </div>
-        <div class="mt-auto p-3 border-top border-secondary">
-            <div class="d-flex align-items-center">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">
-                    <span class="text-white fw-semibold">{{ request.user.get_initials }}</span>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">{{ request.user.get_initials }}</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name">{{ request.user.get_full_name }}</div>
+                    <div class="sidebar-user-email">{{ request.user.email }}</div>
                 </div>
-                <div class="flex-grow-1">
-                    <div class="text-white small fw-semibold">{{ request.user.get_full_name }}</div>
-                    <div class="text-white-50 small">{{ request.user.email }}</div>
-                </div>
-                <a href="{% url 'account_logout' %}" class="text-white-50" title="Logout">
+                <a href="{% url 'account_logout' %}" class="sidebar-logout" title="Sign out">
                     <i class="bi bi-box-arrow-right"></i>
                 </a>
             </div>
@@ -57,16 +59,16 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="flex-grow-1 bg-light">
+    <div class="main-content">
         <!-- Top Bar -->
-        <div class="bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">{% block page_title %}{% endblock %}</h4>
-            <div class="d-flex align-items-center">
+        <div class="topbar">
+            <h1 class="topbar-title">{% block page_title %}{% endblock %}</h1>
+            <div class="d-flex align-items-center gap-3">
                 {% if messages %}
                 {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 px-3 mb-0 me-3" role="alert">
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 px-3 mb-0" role="alert" style="position: fixed; top: 1rem; right: 1rem; z-index: 9999; max-width: 400px; box-shadow: var(--shadow-lg);">
                     {{ message }}
-                    <button type="button" class="btn-close btn-close-sm py-2" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
                 </div>
                 {% endfor %}
                 {% endif %}
@@ -74,7 +76,7 @@
         </div>
 
         <!-- Page Content -->
-        <div class="p-4">
+        <div class="page-content">
             {% block content %}{% endblock %}
         </div>
     </div>

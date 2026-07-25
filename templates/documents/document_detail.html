@@ -7,19 +7,19 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-8">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
+        <div class="detail-section mb-4">
+            <div class="detail-section-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <span class="badge bg-light text-dark me-2">{{ document.document_type|upper }}</span>
+                        <span class="badge-status draft me-2">{{ document.document_type|upper }}</span>
                         {% if document.status == 'completed' %}
-                        <span class="badge bg-success">Processed</span>
+                        <span class="badge-status active">Processed</span>
                         {% elif document.status == 'processing' %}
-                        <span class="badge bg-warning">Processing...</span>
+                        <span class="badge-status draft">Processing...</span>
                         {% elif document.status == 'failed' %}
-                        <span class="badge bg-danger">Failed</span>
+                        <span class="badge-status inactive">Failed</span>
                         {% else %}
-                        <span class="badge bg-secondary">Pending</span>
+                        <span class="badge-status inactive">Pending</span>
                         {% endif %}
                     </div>
                     <a href="{% url 'documents:list' document.knowledge_base.pk %}" class="btn btn-outline-secondary btn-sm">
@@ -27,27 +27,28 @@
                     </a>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <p class="text-muted mb-1">Size</p>
-                        <p>{{ document.file_size_display }}</p>
+                <div class="info-grid">
+                    <div class="info-grid-item">
+                        <div class="info-grid-value primary">{{ document.file_size_display }}</div>
+                        <div class="info-grid-label">Size</div>
                     </div>
-                    <div class="col-md-6">
-                        <p class="text-muted mb-1">Pages</p>
-                        <p>{{ document.page_count|default:"-" }}</p>
+                    <div class="info-grid-item">
+                        <div class="info-grid-value info">{{ document.page_count|default:"-" }}</div>
+                        <div class="info-grid-label">Pages</div>
                     </div>
-                    <div class="col-md-6">
-                        <p class="text-muted mb-1">Chunks</p>
-                        <p>{{ document.chunk_count }}</p>
+                    <div class="info-grid-item">
+                        <div class="info-grid-value success">{{ document.chunk_count }}</div>
+                        <div class="info-grid-label">Chunks</div>
                     </div>
-                    <div class="col-md-6">
-                        <p class="text-muted mb-1">Uploaded</p>
-                        <p>{{ document.created_at|date:"M d, Y H:i" }}</p>
+                    <div class="info-grid-item">
+                        <div class="info-grid-value warning" style="font-size: 1rem;">{{ document.created_at|date:"M d, Y" }}</div>
+                        <div class="info-grid-label">Uploaded</div>
                     </div>
                 </div>
 
                 {% if document.error_message %}
                 <div class="alert alert-danger mt-3">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
                     <strong>Error:</strong> {{ document.error_message }}
                 </div>
                 {% endif %}
@@ -55,18 +56,20 @@
         </div>
 
         {% if chunks %}
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Chunks ({{ chunks|length }})</h5>
+        <div class="detail-section">
+            <div class="detail-section-header">
+                <h5>Chunks ({{ chunks|length }})</h5>
             </div>
-            <div class="card-body">
+            <div class="detail-section-body">
                 {% for chunk in chunks %}
-                <div class="border rounded p-3 mb-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <small class="text-muted">Chunk {{ chunk.chunk_index }}{% if chunk.page_number %} &middot; Page {{ chunk.page_number }}{% endif %}</small>
+                <div class="chunk-preview">
+                    <div class="chunk-preview-header">
+                        <small class="text-muted">
+                            <strong>Chunk {{ chunk.chunk_index }}</strong>{% if chunk.page_number %} &middot; Page {{ chunk.page_number }}{% endif %}
+                        </small>
                         <small class="text-muted">{{ chunk.token_count }} tokens</small>
                     </div>
-                    <p class="mb-0 small">{{ chunk.content|truncatewords:50 }}</p>
+                    <div class="chunk-preview-content">{{ chunk.content|truncatewords:50 }}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -75,14 +78,14 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white"><h6 class="mb-0">Actions</h6></div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'documents:delete' document.pk document.knowledge_base.pk %}" class="btn btn-outline-danger">
-                        <i class="bi bi-trash me-1"></i> Delete
-                    </a>
-                </div>
+        <div class="detail-section">
+            <div class="detail-section-header">
+                <h6>Actions</h6>
+            </div>
+            <div class="detail-section-body">
+                <a href="{% url 'documents:delete' document.pk document.knowledge_base.pk %}" class="btn btn-outline-danger w-100">
+                    <i class="bi bi-trash me-1"></i> Delete Document
+                </a>
             </div>
         </div>
     </div>

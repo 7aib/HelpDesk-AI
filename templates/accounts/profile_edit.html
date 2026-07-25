@@ -7,11 +7,11 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Edit Profile</h5>
+        <div class="detail-section">
+            <div class="detail-section-header">
+                <h5>Edit Profile</h5>
             </div>
-            <div class="card-body">
+            <div class="detail-section-body">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
 
@@ -95,7 +95,7 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary px-4">
                             <i class="bi bi-check-lg me-1"></i> Save Changes
                         </button>
                         <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">Cancel</a>
@@ -105,13 +105,11 @@
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                    <span class="text-white fs-3 fw-semibold">{{ request.user.get_initials }}</span>
-                </div>
-                <h5>{{ request.user.get_full_name }}</h5>
-                <p class="text-muted">{{ request.user.email }}</p>
+        <div class="detail-section">
+            <div class="detail-section-body text-center">
+                <div class="profile-avatar">{{ request.user.get_initials }}</div>
+                <h5 style="font-weight: 700;">{{ request.user.get_full_name }}</h5>
+                <p class="text-muted" style="font-size: 0.85rem;">{{ request.user.email }}</p>
             </div>
         </div>
     </div>

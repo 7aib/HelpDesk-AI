@@ -1,21 +1,24 @@
 {% if message.role == "user" %}
-<div class="d-flex justify-content-end mb-3">
-    <div class="bg-primary text-white rounded-3 px-3 py-2" style="max-width: 70%;">
+<div class="message">
+    <div class="message-avatar user">You</div>
+    <div class="message-content user">
         {{ message.content|linebreaksbr }}
     </div>
 </div>
 {% else %}
-<div class="d-flex justify-content-start mb-3">
-    <div class="bg-light rounded-3 px-3 py-2" style="max-width: 70%;">
+<div class="message">
+    <div class="message-avatar assistant">
+        <i class="bi bi-robot"></i>
+    </div>
+    <div class="message-content assistant">
         {{ message.content|linebreaksbr }}
         {% if message.metadata.sources %}
-        <hr class="my-2">
-        <small class="text-muted">
-            <i class="bi bi-info-circle me-1"></i> Sources:
+        <div class="message-sources">
+            <strong><i class="bi bi-link-45deg me-1"></i>Sources:</strong>
             {% for source in message.metadata.sources %}
-                {{ source.document_title|default:"Unknown" }}{% if not forloop.last %}, {% endif %}
+                <span style="background: var(--primary-light); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--primary); font-weight: 500;">{{ source.document_title|default:"Unknown" }}</span>{% if not forloop.last %} {% endif %}
             {% endfor %}
-        </small>
+        </div>
         {% endif %}
     </div>
 </div>
