@@ -24,7 +24,7 @@
                 <span>My Chatbots</span>
             </a>
 
-            <div class="sidebar-section-label">Account</div>
+            <div class="sidebar-section-label" style="margin-top: auto;">Account</div>
 
             <a href="{% url 'accounts:profile' %}" class="sidebar-link {% if 'profile' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-person"></i>

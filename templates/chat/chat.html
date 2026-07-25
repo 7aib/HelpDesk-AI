@@ -97,6 +97,7 @@ function sendMessage(e) {
 
     const container = document.getElementById('messages-container');
     const chatMessages = document.getElementById('chat-messages');
+    const sendBtn = document.getElementById('send-btn');
 
     // Remove empty state if present
     const emptyState = chatMessages.querySelector('.chat-empty');
@@ -109,10 +110,23 @@ function sendMessage(e) {
             <div class="message-content user">${escapeHtml(message)}</div>
         </div>
     `;
+
+    // Show typing indicator
+    container.insertAdjacentHTML('beforeend', `
+        <div class="typing-indicator" id="typing-indicator">
+            <div class="message-avatar">AI</div>
+            <div class="typing-bubble">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    `);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     input.value = '';
+    if (sendBtn) sendBtn.disabled = true;
+    input.disabled = true;
 
-    // Send via fetch
     fetch(`/chat/{{ chatbot.pk }}/send/`, {
         method: 'POST',
         headers: {
@@ -125,13 +139,34 @@ function sendMessage(e) {
         })
     })
     .then(r => {
+        if (!r.ok) throw new Error('Network response was not ok');
         const cid = r.headers.get('X-Conversation-ID');
         if (cid) document.getElementById('conversation-id').value = cid;
         return r.text();
     })
     .then(html => {
-        container.innerHTML += html;
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.remove();
+        container.insertAdjacentHTML('beforeend', html);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+    })
+    .catch(err => {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.remove();
+        container.insertAdjacentHTML('beforeend', `
+            <div class="message">
+                <div class="message-avatar assistant"><i class="bi bi-robot"></i></div>
+                <div class="message-content assistant text-danger">
+                    Sorry, something went wrong. Please try again.
+                </div>
+            </div>
+        `);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    })
+    .finally(() => {
+        if (sendBtn) sendBtn.disabled = false;
+        input.disabled = false;
+        input.focus();
     });
 }
 
