@@ -114,6 +114,12 @@ class Chatbot(BaseModel):
         help_text="When the chatbot was last used.",
     )
 
+    # Embed settings
+    allow_embed = models.BooleanField(
+        default=True,
+        help_text="Allow this chatbot to be embedded on external websites.",
+    )
+
     class Meta:
         verbose_name = "Chatbot"
         verbose_name_plural = "Chatbots"

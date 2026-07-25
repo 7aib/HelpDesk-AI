@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ chatbot.name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: #eef2ff;
+            --surface: #ffffff;
+            --bg-page: #f8fafc;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --radius: 0.5rem;
+            --radius-lg: 0.75rem;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .widget-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .widget-header-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .widget-header-info h6 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.1rem;
+        }
+
+        .widget-header-info small {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Messages */
+        .widget-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .widget-msg {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 85%;
+        }
+
+        .widget-msg.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .widget-msg-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .widget-msg.assistant .widget-msg-avatar {
+            background: var(--primary);
+            color: white;
+        }
+
+        .widget-msg.user .widget-msg-avatar {
+            background: #e2e8f0;
+            color: var(--text-secondary);
+        }
+
+        .widget-msg-bubble {
+            padding: 0.65rem 0.9rem;
+            border-radius: var(--radius-lg);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .widget-msg.assistant .widget-msg-bubble {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .widget-msg.user .widget-msg-bubble {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Empty state */
+        .widget-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .widget-empty i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .widget-empty h6 {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .widget-empty p {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* Input */
+        .widget-input-area {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            flex-shrink: 0;
+        }
+
+        .widget-input-form {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .widget-input-form input {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.6rem 0.85rem;
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .widget-input-form input:focus {
+            border-color: var(--primary);
+        }
+
+        .widget-input-form button {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .widget-input-form button:hover {
+            background: var(--primary-hover);
+        }
+
+        .widget-input-form button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Typing indicator */
+        .widget-typing {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0 0.25rem;
+        }
+
+        .widget-typing-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .widget-typing-dots {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 0.6rem 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .widget-typing-dots span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: widgetBounce 1.4s ease-in-out infinite;
+        }
+
+        .widget-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .widget-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes widgetBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+
+        /* Disabled overlay */
+        .widget-disabled {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: var(--bg-page);
+        }
+
+        .widget-disabled i {
+            font-size: 2rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .widget-disabled h6 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .widget-disabled p {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    {% if not has_content %}
+    <div class="widget-disabled">
+        <i class="bi bi-chat-dots"></i>
+        <h6>{{ chatbot.name }}</h6>
+        <p>This chatbot is being set up. Please check back later.</p>
+    </div>
+    {% else %}
+    <!-- Header -->
+    <div class="widget-header">
+        <div class="widget-header-avatar">
+            <i class="bi bi-robot"></i>
+        </div>
+        <div class="widget-header-info">
+            <h6>{{ chatbot.name }}</h6>
+            <small>Powered by HelpDesk AI</small>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="widget-messages" id="widget-messages">
+        <div id="messages-container">
+            {% if messages %}
+                {% for msg in messages %}
+                <div class="widget-msg {{ msg.role }}">
+                    <div class="widget-msg-avatar">
+                        {% if msg.role == "user" %}You{% else %}<i class="bi bi-robot"></i>{% endif %}
+                    </div>
+                    <div class="widget-msg-bubble">{{ msg.content }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="widget-empty" id="empty-state">
+                <i class="bi bi-chat-dots"></i>
+                <h6>How can I help you?</h6>
+                <p>Ask me anything about {{ chatbot.name }}.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Input -->
+    <div class="widget-input-area">
+        <form id="widget-form" onsubmit="widgetSend(event)">
+            <input type="hidden" id="widget-conversation-id" value="{{ conversation.id }}">
+            <div class="widget-input-form">
+                <input type="text" id="widget-input" placeholder="Type your message..." autocomplete="off" required>
+                <button type="submit" id="widget-send-btn">
+                    <i class="bi bi-send" style="font-size: 0.9rem;"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <script>
+    function widgetSend(e) {
+        e.preventDefault();
+        {% if not has_content %}return;{% endif %}
+
+        var input = document.getElementById('widget-input');
+        var message = input.value.trim();
+        if (!message) return;
+
+        var container = document.getElementById('messages-container');
+        var messagesEl = document.getElementById('widget-messages');
+        var sendBtn = document.getElementById('widget-send-btn');
+
+        // Remove empty state
+        var empty = document.getElementById('empty-state');
+        if (empty) empty.remove();
+
+        // Add user message
+        container.insertAdjacentHTML('beforeend', '<div class="widget-msg user">' +
+            '<div class="widget-msg-avatar">You</div>' +
+            '<div class="widget-msg-bubble">' + escapeWidgetHtml(message) + '</div></div>');
+
+        // Show typing indicator
+        container.insertAdjacentHTML('beforeend',
+            '<div class="widget-typing" id="widget-typing">' +
+            '<div class="widget-typing-avatar"><i class="bi bi-robot"></i></div>' +
+            '<div class="widget-typing-dots"><span></span><span></span><span></span></div></div>');
+
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        input.value = '';
+        sendBtn.disabled = true;
+        input.disabled = true;
+
+        fetch('/embed/{{ chatbot.slug }}/send/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'message': message,
+                'conversation_id': document.getElementById('widget-conversation-id').value
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var typing = document.getElementById('widget-typing');
+            if (typing) typing.remove();
+
+            if (data.conversation_id) {
+                document.getElementById('widget-conversation-id').value = data.conversation_id;
+            }
+
+            container.insertAdjacentHTML('beforeend',
+                '<div class="widget-msg assistant">' +
+                '<div class="widget-msg-avatar"><i class="bi bi-robot"></i></div>' +
+                '<div class="widget-msg-bubble">' + escapeWidgetHtml(data.answer || 'Sorry, something went wrong.') + '</div></div>');
+
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        })
+        .catch(function() {
+            var typing = document.getElementById('widget-typing');
+            if (typing) typing.remove();
+
+            container.insertAdjacentHTML('beforeend',
+                '<div class="widget-msg assistant">' +
+                '<div class="widget-msg-avatar"><i class="bi bi-robot"></i></div>' +
+                '<div class="widget-msg-bubble">Sorry, something went wrong. Please try again.</div></div>');
+
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        })
+        .finally(function() {
+            sendBtn.disabled = false;
+            input.disabled = false;
+            input.focus();
+        });
+    }
+
+    function escapeWidgetHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Auto-scroll and focus
+    (function() {
+        var el = document.getElementById('widget-messages');
+        if (el) el.scrollTop = el.scrollHeight;
+        var input = document.getElementById('widget-input');
+        if (input) input.focus();
+    })();
+    </script>
+</body>
+</html>

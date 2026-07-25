@@ -18,6 +18,8 @@ urlpatterns = [
     path("knowledge/", include("apps.knowledge.urls")),
     path("documents/", include("apps.documents.urls")),
     path("chat/", include("apps.chat.urls")),
+    # Embed widget
+    path("embed/", include("apps.embed.urls")),
     # API
     path("api/v1/", include("apps.api.urls")),
 ]

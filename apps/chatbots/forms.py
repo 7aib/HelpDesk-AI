@@ -52,6 +52,7 @@ class ChatbotForm(forms.ModelForm):
             "chunk_size",
             "chunk_overlap",
             "status",
+            "allow_embed",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -66,3 +67,5 @@ class ChatbotForm(forms.ModelForm):
 
         self.fields["status"].choices = Chatbot.Status.choices
         self.fields["status"].widget = forms.Select(choices=Chatbot.Status.choices)
+
+        self.fields["allow_embed"].widget = forms.CheckboxInput(attrs={"class": "form-check-input"})
