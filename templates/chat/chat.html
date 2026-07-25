@@ -124,7 +124,11 @@ function sendMessage(e) {
             'conversation_id': document.getElementById('conversation-id').value
         })
     })
-    .then(r => r.text())
+    .then(r => {
+        const cid = r.headers.get('X-Conversation-ID');
+        if (cid) document.getElementById('conversation-id').value = cid;
+        return r.text();
+    })
     .then(html => {
         container.innerHTML += html;
         chatMessages.scrollTop = chatMessages.scrollHeight;

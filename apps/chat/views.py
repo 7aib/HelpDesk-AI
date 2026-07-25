@@ -53,12 +53,21 @@ class ConversationView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         """Add conversation and messages to context."""
         context = super().get_context_data(**kwargs)
-        context["conversation"] = get_object_or_404(
+        conversation = get_object_or_404(
             Conversation,
             id=self.kwargs["conversation_id"],
             chatbot__owner=self.request.user,
         )
-        context["messages"] = context["conversation"].messages.all()
+        context["conversation"] = conversation
+        context["messages"] = conversation.messages.all()
+        context["conversations"] = Conversation.objects.filter(
+            chatbot=conversation.chatbot,
+            user=self.request.user,
+        ).order_by("-last_message_at")[:20]
+        kb = conversation.chatbot.knowledge_base
+        has_docs = kb is not None and kb.total_documents > 0
+        has_qa = kb is not None and kb.qa_pairs.filter(is_active=True).exists()
+        context["has_documents"] = has_docs or has_qa
         return context
 
 
@@ -166,7 +175,7 @@ class Send_messageView(LoginRequiredMixin, View):
         chatbot.update_usage_stats()
 
         # Return response for HTMX
-        return render(
+        response = render(
             request,
             "chat/partials/message.html",
             {
@@ -174,6 +183,8 @@ class Send_messageView(LoginRequiredMixin, View):
                 "conversation": conversation,
             },
         )
+        response["X-Conversation-ID"] = str(conversation.id)
+        return response
 
 
 class ConversationRenameView(LoginRequiredMixin, View):
