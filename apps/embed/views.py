@@ -56,41 +56,22 @@ class EmbedWidgetView(View):
         if kb:
             has_content = kb.total_documents > 0 or kb.qa_pairs.filter(is_active=True).exists()
 
-        # Get or create conversation via cookie
-        cookie_name = f"embed_{chatbot.slug}"
-        session_id = request.COOKIES.get(cookie_name)
-
-        conversation = None
-        messages = []
-        if session_id:
-            conversation = Conversation.objects.filter(
-                session_id=session_id, chatbot=chatbot
-            ).first()
-            if conversation:
-                messages = list(conversation.messages.all())
-
-        if not conversation:
-            conversation = Conversation.objects.create(
-                chatbot=chatbot,
-                user=None,
-                title="Embed Chat",
-                session_id=str(uuid.uuid4()),
-            )
+        # Create a fresh conversation for each widget load (no cookies)
+        conversation = Conversation.objects.create(
+            chatbot=chatbot,
+            user=None,
+            title="Embed Chat",
+            session_id=str(uuid.uuid4()),
+        )
 
         context = {
             "chatbot": chatbot,
             "conversation": conversation,
-            "messages": messages,
+            "messages": [],
             "has_content": has_content,
         }
 
         response = render(request, "embed/widget.html", context)
-        response.set_cookie(
-            cookie_name,
-            str(conversation.session_id),
-            max_age=60 * 60 * 24 * 30,
-            samesite="Lax",
-        )
         return response
 
 
@@ -207,7 +188,8 @@ class WidgetLoaderView(View):
             "    var SLUG = '" + slug + "';\n"
             "    var VERT = '" + vertical + "';\n"
             "    var HORIZ = '" + horizontal + "';\n"
-            "    var BASE = window.location.origin;\n"
+            "    var scriptEl = document.currentScript;\n"
+            "    var BASE = scriptEl ? scriptEl.src.split('/embed/')[0] : window.location.origin;\n"
             "    var WIDGET_URL = BASE + '/embed/' + SLUG + '/';\n"
             "\n"
             "    if (!SLUG) return;\n"

@@ -27,14 +27,14 @@ DATABASES = {
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# Django Debug Toolbar
-INSTALLED_APPS += ["debug_toolbar", "silk"]  # noqa: F405
-MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]  # noqa: F405
+# Django Debug Toolbar (disabled for performance)
+# INSTALLED_APPS += ["debug_toolbar", "silk"]  # noqa: F405
+# MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]  # noqa: F405
 INTERNAL_IPS = ["127.0.0.1", "localhost"]
 
-# Silk profiling
-SILKY_PYTHON_PROFILER = True
-SILKY_PYTHON_PROFILER_BINARY = True
+# Silk profiling (disabled)
+# SILKY_PYTHON_PROFILER = True
+# SILKY_PYTHON_PROFILER_BINARY = True
 
 # Celery tasks run synchronously in development
 CELERY_TASK_ALWAYS_EAGER = True
