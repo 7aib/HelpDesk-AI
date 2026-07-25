@@ -148,7 +148,7 @@ class VectorSearchService:
                 dc.metadata,
                 d.title as document_title,
                 1 - (dc.embedding <=> %s::vector) as similarity
-            FROM knowledge_documentchunk dc
+            FROM documents_documentchunk dc
             JOIN documents_document d ON dc.document_id = d.id
             JOIN knowledge_knowledgebase kb ON d.knowledge_base_id = kb.id
             WHERE
@@ -162,7 +162,7 @@ class VectorSearchService:
         with connection.cursor() as cursor:
             cursor.execute(
                 sql,
-                [embedding_str, chatbot_id, embedding_str, similarity_threshold, top_k],
+                [embedding_str, chatbot_id, embedding_str, similarity_threshold, embedding_str, top_k],
             )
             columns = [col[0] for col in cursor.description]
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -207,7 +207,7 @@ class VectorSearchService:
         """
 
         with connection.cursor() as cursor:
-            cursor.execute(sql, [embedding_str, knowledge_base_id, top_k])
+            cursor.execute(sql, [embedding_str, knowledge_base_id, embedding_str, top_k])
             columns = [col[0] for col in cursor.description]
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
 

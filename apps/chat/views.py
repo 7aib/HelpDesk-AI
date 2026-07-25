@@ -37,7 +37,9 @@ class ChatView(LoginRequiredMixin, TemplateView):
         ).order_by("-last_message_at")[:20]
         context["knowledge_base"] = context["chatbot"].knowledge_base
         kb = context["knowledge_base"]
-        context["has_documents"] = kb is not None and kb.total_documents > 0 if kb else False
+        has_docs = kb is not None and kb.total_documents > 0
+        has_qa = kb is not None and kb.qa_pairs.filter(is_active=True).exists()
+        context["has_documents"] = has_docs or has_qa
         return context
 
 
@@ -126,13 +128,14 @@ class Send_messageView(LoginRequiredMixin, View):
             .values("role", "content")
         )
 
-        # Check if chatbot has documents in its knowledge base
+        # Check if chatbot has documents or QA pairs in its knowledge base
         kb = chatbot.knowledge_base
-        if not kb or kb.total_documents == 0:
+        has_content = kb and (kb.total_documents > 0 or kb.qa_pairs.filter(is_active=True).exists())
+        if not has_content:
             assistant_message = Message.objects.create(
                 conversation=conversation,
                 role=Message.Role.ASSISTANT,
-                content="This chatbot does not have any documents in its knowledge base. Please upload documents before chatting.",
+                content="This chatbot does not have any documents or Q&A pairs in its knowledge base. Please add content before chatting.",
             )
             return render(
                 request,
@@ -247,13 +250,14 @@ class ChatStreamView(LoginRequiredMixin, View):
             .values("role", "content")
         )
 
-        # Check if chatbot has documents in its knowledge base
+        # Check if chatbot has documents or QA pairs in its knowledge base
         kb = chatbot.knowledge_base
-        if not kb or kb.total_documents == 0:
+        has_content = kb and (kb.total_documents > 0 or kb.qa_pairs.filter(is_active=True).exists())
+        if not has_content:
             assistant_message = Message.objects.create(
                 conversation=conversation,
                 role=Message.Role.ASSISTANT,
-                content="This chatbot does not have any documents in its knowledge base. Please upload documents before chatting.",
+                content="This chatbot does not have any documents or Q&A pairs in its knowledge base. Please add content before chatting.",
             )
             def error_stream():
                 yield f"data: {json.dumps({'token': assistant_message.content})}\n\n"

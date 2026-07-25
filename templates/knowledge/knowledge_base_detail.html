@@ -2,81 +2,172 @@
 
 {% block title %}{{ knowledge_base.name }} - {{ app_name }}{% endblock %}
 
-{% block page_title %}{{ knowledge_base.name }}{% endblock %}
+{% block page_title %}Knowledge Base{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <a href="{% url 'chatbots:detail' knowledge_base.chatbot.pk %}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left me-1"></i> Back to Chatbot
+    <a href="{% url 'chatbots:detail' knowledge_base.chatbot.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> {{ knowledge_base.chatbot.name }}
     </a>
-    <a href="{% url 'knowledge:qa-create' knowledge_base.pk %}" class="btn btn-primary">
-        <i class="bi bi-plus me-1"></i> Add Q&A Pair
+    <a href="{% url 'knowledge:edit' knowledge_base.pk %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i> Edit
     </a>
 </div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="detail-section mb-4">
-            <div class="detail-section-header">
-                <h6><i class="bi bi-book me-1"></i> Knowledge Base Info</h6>
-            </div>
-            <div class="detail-section-body">
-                <div class="d-flex flex-column gap-2">
-                    <div class="d-flex justify-content-between" style="font-size: 0.85rem;">
-                        <span class="text-muted">Name</span>
-                        <span class="fw-semibold">{{ knowledge_base.name }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between" style="font-size: 0.85rem;">
-                        <span class="text-muted">Description</span>
-                        <span class="fw-semibold" style="text-align: right; max-width: 200px;">{{ knowledge_base.description|default:"No description" }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between" style="font-size: 0.85rem;">
-                        <span class="text-muted">Created</span>
-                        <span class="fw-semibold">{{ knowledge_base.created_at|date:"M d, Y" }}</span>
-                    </div>
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="detail-section" style="padding: 1rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-file-earmark-text" style="color: #6366f1; font-size: 1.1rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 1.3rem; font-weight: 700; line-height: 1;">{{ knowledge_base.total_documents }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Documents</div>
                 </div>
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="detail-section" style="padding: 1rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-grid-3x3-gap" style="color: #10b981; font-size: 1.1rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 1.3rem; font-weight: 700; line-height: 1;">{{ knowledge_base.total_chunks }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Chunks</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="detail-section" style="padding: 1rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-fonts" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 1.3rem; font-weight: 700; line-height: 1;">{{ knowledge_base.total_tokens|default:"0" }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Tokens</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="detail-section" style="padding: 1rem;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-question-circle" style="color: #ef4444; font-size: 1.1rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 1.3rem; font-weight: 700; line-height: 1;">{{ total_qa_pairs }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Q&A Pairs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <div class="col-md-8">
+<div class="row g-4">
+    <!-- Documents Column -->
+    <div class="col-lg-5">
         <div class="detail-section">
-            <div class="detail-section-header">
-                <h5>Q&A Pairs ({{ qa_pairs|length }})</h5>
+            <div class="detail-section-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Documents</h6>
+                <a href="{% url 'documents:list' knowledge_base.pk %}" class="btn btn-sm btn-outline-primary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">
+                    View All <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="detail-section-body">
+                {% if documents %}
+                    {% for doc in documents %}
+                    <div class="d-flex align-items-center gap-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--surface-hover); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            {% if doc.document_type == 'pdf' %}
+                            <i class="bi bi-file-earmark-pdf" style="color: #ef4444;"></i>
+                            {% elif doc.document_type == 'txt' %}
+                            <i class="bi bi-file-earmark-text" style="color: #6366f1;"></i>
+                            {% elif doc.document_type == 'md' %}
+                            <i class="bi bi-markdown" style="color: #10b981;"></i>
+                            {% else %}
+                            <i class="bi bi-file-earmark" style="color: var(--text-muted);"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="fw-semibold text-truncate" style="font-size: 0.85rem;">{{ doc.title }}</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ doc.chunk_count|default:"0" }} chunks &middot; {{ doc.created_at|timesince }} ago</small>
+                        </div>
+                        <span class="badge-status {% if doc.status == 'completed' %}active{% elif doc.status == 'processing' %}draft{% else %}inactive{% endif %}" style="font-size: 0.65rem;">
+                            {{ doc.status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-4">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--surface-hover); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
+                        <i class="bi bi-cloud-arrow-up" style="font-size: 1.2rem; color: var(--text-muted);"></i>
+                    </div>
+                    <p class="text-muted mb-2" style="font-size: 0.85rem;">No documents uploaded yet</p>
+                    <a href="{% url 'documents:upload' knowledge_base.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-upload me-1"></i> Upload
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Q&A Pairs Column -->
+    <div class="col-lg-7">
+        <div class="detail-section">
+            <div class="detail-section-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-question-circle me-2"></i>Q&A Pairs</h6>
+                <a href="{% url 'knowledge:qa_create' knowledge_base.pk %}" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">
+                    <i class="bi bi-plus me-1"></i> Add
+                </a>
             </div>
             <div class="detail-section-body">
                 {% if qa_pairs %}
                     {% for qa in qa_pairs %}
-                    <div class="qa-card">
+                    <div class="py-3 {% if not forloop.last %}border-bottom{% endif %}">
                         <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <div class="qa-card-question">
+                            <div class="flex-grow-1 me-3">
+                                <div class="fw-semibold mb-1" style="font-size: 0.85rem; line-height: 1.4;">
                                     <i class="bi bi-question-circle me-1" style="color: var(--primary);"></i>
                                     {{ qa.question }}
                                 </div>
-                                <div class="qa-card-answer">{{ qa.answer|truncatewords:30 }}</div>
+                                <div class="text-muted" style="font-size: 0.8rem; line-height: 1.4;">{{ qa.answer|truncatewords:25 }}</div>
+                                {% if qa.category %}
+                                <span class="badge-status draft mt-2" style="font-size: 0.65rem;">{{ qa.category }}</span>
+                                {% endif %}
                             </div>
-                            <div class="dropdown ms-2">
-                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" style="padding: 0.25rem 0.5rem;">
-                                    <i class="bi bi-three-dots"></i>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'knowledge:qa-update' qa.pk %}"><i class="bi bi-pencil me-1"></i> Edit</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="{% url 'knowledge:qa-delete' qa.pk %}"><i class="bi bi-trash me-1"></i> Delete</a></li>
-                                </ul>
+                            <div class="d-flex gap-1 flex-shrink-0">
+                                <a href="{% url 'knowledge:qa_update' qa.pk %}" class="btn btn-sm btn-outline-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'knowledge:qa_delete' qa.pk %}" class="btn btn-sm btn-outline-danger" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">
+                                    <i class="bi bi-trash"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
                     {% endfor %}
-                {% else %}
-                <div class="empty-state" style="padding: 2rem;">
-                    <div class="empty-state-icon" style="width: 60px; height: 60px; font-size: 1.5rem;">
-                        <i class="bi bi-question-circle"></i>
+                    {% if total_qa_pairs > 20 %}
+                    <div class="text-center pt-3">
+                        <a href="{% url 'knowledge:qa_list' knowledge_base.pk %}" class="btn btn-sm btn-outline-primary" style="font-size: 0.8rem;">
+                            View all {{ total_qa_pairs }} Q&A pairs <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
-                    <h4>No Q&A pairs yet</h4>
-                    <p>Add Q&A pairs to build your knowledge base.</p>
-                    <a href="{% url 'knowledge:qa-create' knowledge_base.pk %}" class="btn btn-primary">
+                    {% endif %}
+                {% else %}
+                <div class="text-center py-4">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--surface-hover); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
+                        <i class="bi bi-question-circle" style="font-size: 1.2rem; color: var(--text-muted);"></i>
+                    </div>
+                    <p class="text-muted mb-2" style="font-size: 0.85rem;">No Q&A pairs yet</p>
+                    <a href="{% url 'knowledge:qa_create' knowledge_base.pk %}" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus me-1"></i> Add Q&A Pair
                     </a>
                 </div>

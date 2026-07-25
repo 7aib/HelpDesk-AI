@@ -8,27 +8,52 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
-from apps.chatbots.models import Chatbot
-
 from .models import KnowledgeBase, QAPair
 
 
 class KnowledgeBaseDetailView(LoginRequiredMixin, TemplateView):
     """
-    View knowledge base details.
+    View knowledge base details with QA pairs.
     """
 
     template_name = "knowledge/knowledge_base_detail.html"
 
     def get_context_data(self, **kwargs):
-        """Add knowledge base to context."""
         context = super().get_context_data(**kwargs)
         context["knowledge_base"] = get_object_or_404(
             KnowledgeBase,
             id=self.kwargs["pk"],
             chatbot__owner=self.request.user,
         )
+        kb = context["knowledge_base"]
+        context["qa_pairs"] = kb.qa_pairs.filter(is_active=True).order_by("-created_at")[:20]
+        context["total_qa_pairs"] = kb.qa_pairs.filter(is_active=True).count()
+        context["chatbot"] = kb.chatbot
+        context["documents"] = kb.documents.filter(is_deleted=False).order_by("-created_at")[:10]
         return context
+
+
+class KnowledgeBaseUpdateView(LoginRequiredMixin, UpdateView):
+    """
+    Edit knowledge base name and description.
+    """
+
+    model = KnowledgeBase
+    template_name = "knowledge/knowledge_base_edit.html"
+    fields = ["name", "description"]
+
+    def get_queryset(self):
+        return KnowledgeBase.objects.filter(
+            chatbot__owner=self.request.user,
+        )
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Knowledge base updated successfully.")
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy("knowledge:detail", kwargs={"pk": self.object.pk})
 
 
 class QAPairListView(LoginRequiredMixin, ListView):
@@ -42,7 +67,6 @@ class QAPairListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        """Filter by knowledge base."""
         self.knowledge_base = get_object_or_404(
             KnowledgeBase,
             id=self.kwargs["kb_id"],
@@ -50,12 +74,13 @@ class QAPairListView(LoginRequiredMixin, ListView):
         )
         return QAPair.objects.filter(
             knowledge_base=self.knowledge_base,
+            is_active=True,
         ).order_by("-created_at")
 
     def get_context_data(self, **kwargs):
-        """Add knowledge base to context."""
         context = super().get_context_data(**kwargs)
         context["knowledge_base"] = self.knowledge_base
+        context["chatbot"] = self.knowledge_base.chatbot
         return context
 
 
@@ -69,20 +94,15 @@ class QAPairCreateView(LoginRequiredMixin, CreateView):
     fields = ["question", "answer", "category"]
 
     def form_valid(self, form):
-        """Set knowledge base and generate embedding."""
         knowledge_base = get_object_or_404(
             KnowledgeBase,
             id=self.kwargs["kb_id"],
             chatbot__owner=self.request.user,
         )
-        
         form.instance.knowledge_base = knowledge_base
-        
         response = super().form_valid(form)
-        
-        # Generate embedding for the question
+
         from apps.rag.services import EmbeddingService
-        
         embedding_service = EmbeddingService()
         try:
             embedding = embedding_service.generate_embedding(
@@ -96,16 +116,24 @@ class QAPairCreateView(LoginRequiredMixin, CreateView):
                 self.request,
                 f"Q&A pair created but embedding generation failed: {e}",
             )
-        
+
         messages.success(self.request, "Q&A pair created successfully.")
         return response
 
     def get_success_url(self):
-        """Redirect to Q&A list."""
         return reverse_lazy(
             "knowledge:qa_list",
             kwargs={"kb_id": self.kwargs["kb_id"]},
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["knowledge_base"] = get_object_or_404(
+            KnowledgeBase,
+            id=self.kwargs["kb_id"],
+            chatbot__owner=self.request.user,
+        )
+        return context
 
 
 class QAPairUpdateView(LoginRequiredMixin, UpdateView):
@@ -118,16 +146,13 @@ class QAPairUpdateView(LoginRequiredMixin, UpdateView):
     fields = ["question", "answer", "category", "is_active"]
 
     def get_queryset(self):
-        """Filter by user's chatbots."""
         return QAPair.objects.filter(
             knowledge_base__chatbot__owner=self.request.user,
         )
 
     def form_valid(self, form):
-        """Regenerate embedding if question changed."""
         if "question" in form.changed_fields:
             from apps.rag.services import EmbeddingService
-            
             embedding_service = EmbeddingService()
             try:
                 embedding = embedding_service.generate_embedding(
@@ -140,17 +165,21 @@ class QAPairUpdateView(LoginRequiredMixin, UpdateView):
                     self.request,
                     f"Q&A pair updated but embedding regeneration failed: {e}",
                 )
-        
+
         response = super().form_valid(form)
         messages.success(self.request, "Q&A pair updated successfully.")
         return response
 
     def get_success_url(self):
-        """Redirect to Q&A list."""
         return reverse_lazy(
             "knowledge:qa_list",
             kwargs={"kb_id": self.object.knowledge_base.id},
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["knowledge_base"] = self.object.knowledge_base
+        return context
 
 
 class QAPairDeleteView(LoginRequiredMixin, DeleteView):
@@ -163,13 +192,11 @@ class QAPairDeleteView(LoginRequiredMixin, DeleteView):
     context_object_name = "qa_pair"
 
     def get_queryset(self):
-        """Filter by user's chatbots."""
         return QAPair.objects.filter(
             knowledge_base__chatbot__owner=self.request.user,
         )
 
     def form_valid(self, form):
-        """Delete the Q&A pair."""
         qa_pair = self.get_object()
         kb_id = qa_pair.knowledge_base.id
         qa_pair.delete()

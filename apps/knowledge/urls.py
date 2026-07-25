@@ -11,6 +11,7 @@ app_name = "knowledge"
 urlpatterns = [
     # Knowledge Base
     path("<uuid:pk>/", views.KnowledgeBaseDetailView.as_view(), name="detail"),
+    path("<uuid:pk>/edit/", views.KnowledgeBaseUpdateView.as_view(), name="edit"),
     # Q&A Pairs
     path(
         "<uuid:kb_id>/qa/",

@@ -54,7 +54,7 @@
                     <p>Ask me anything about your knowledge base.</p>
                     {% else %}
                     <h5>No documents yet</h5>
-                    <p>Upload documents to the knowledge base before you can chat. <a href="{% url 'chatbots:detail' chatbot.pk %}">Manage chatbot</a>.</p>
+                    <p>Upload documents or add Q&A pairs to the knowledge base before you can chat. <a href="{% url 'chatbots:detail' chatbot.pk %}">Manage chatbot</a>.</p>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -80,7 +80,7 @@
             <div class="alert alert-warning d-flex align-items-center mb-0" role="alert" style="border-radius: 0;">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                 <div>
-                    Upload documents to the knowledge base to enable chat. <a href="{% url 'chatbots:detail' chatbot.pk %}">Manage chatbot</a>.
+                    Upload documents or add Q&A pairs to the knowledge base to enable chat. <a href="{% url 'chatbots:detail' chatbot.pk %}">Manage chatbot</a>.
                 </div>
             </div>
         </div>

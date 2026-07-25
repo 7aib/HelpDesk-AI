@@ -2,52 +2,67 @@
 
 {% block title %}Q&A Pairs - {{ app_name }}{% endblock %}
 
-{% block page_title %}{{ knowledge_base.name }} - Q&A Pairs{% endblock %}
+{% block page_title %}Q&A Pairs{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <a href="{% url 'knowledge:detail' knowledge_base.pk %}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left me-1"></i> Back
+    <a href="{% url 'knowledge:detail' knowledge_base.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> {{ knowledge_base.name }}
     </a>
-    <a href="{% url 'knowledge:qa-create' knowledge_base.pk %}" class="btn btn-primary">
+    <a href="{% url 'knowledge:qa_create' knowledge_base.pk %}" class="btn btn-sm btn-primary">
         <i class="bi bi-plus me-1"></i> Add Q&A Pair
     </a>
 </div>
 
 {% if qa_pairs %}
 <div class="detail-section">
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Question</th>
-                    <th>Answer</th>
-                    <th>Category</th>
-                    <th>Created</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for qa in qa_pairs %}
-                <tr>
-                    <td class="fw-semibold" style="max-width: 300px;">{{ qa.question|truncatewords:15 }}</td>
-                    <td style="max-width: 400px; font-size: 0.85rem;">{{ qa.answer|truncatewords:15 }}</td>
-                    <td><span class="badge-status draft">{{ qa.category|default:"-" }}</span></td>
-                    <td style="font-size: 0.85rem;">{{ qa.created_at|timesince }} ago</td>
-                    <td>
-                        <a href="{% url 'knowledge:qa-update' qa.pk %}" class="btn btn-sm btn-outline-primary me-1" style="padding: 0.25rem 0.5rem;">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <a href="{% url 'knowledge:qa-delete' qa.pk %}" class="btn btn-sm btn-outline-danger" style="padding: 0.25rem 0.5rem;">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="detail-section-body" style="padding: 0;">
+        {% for qa in qa_pairs %}
+        <div class="d-flex align-items-start gap-3 py-3 px-3 {% if not forloop.last %}border-bottom{% endif %}">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+                <i class="bi bi-question" style="color: #6366f1; font-size: 0.9rem;"></i>
+            </div>
+            <div class="flex-grow-1 min-width-0">
+                <div class="fw-semibold mb-1" style="font-size: 0.85rem; line-height: 1.4;">{{ qa.question }}</div>
+                <div class="text-muted" style="font-size: 0.8rem; line-height: 1.4;">{{ qa.answer|truncatewords:25 }}</div>
+                <div class="d-flex gap-2 mt-2 align-items-center">
+                    {% if qa.category %}
+                    <span class="badge-status draft" style="font-size: 0.65rem;">{{ qa.category }}</span>
+                    {% endif %}
+                    <small class="text-muted" style="font-size: 0.7rem;">{{ qa.created_at|timesince }} ago</small>
+                </div>
+            </div>
+            <div class="d-flex gap-1 flex-shrink-0" style="margin-top: 2px;">
+                <a href="{% url 'knowledge:qa_update' qa.pk %}" class="btn btn-sm btn-outline-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'knowledge:qa_delete' qa.pk %}" class="btn btn-sm btn-outline-danger" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">
+                    <i class="bi bi-trash"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
+
+{% if is_paginated %}
+<nav class="mt-3 d-flex justify-content-center">
+    <ul class="pagination pagination-sm">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}"><i class="bi bi-chevron-left"></i></a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}"><i class="bi bi-chevron-right"></i></a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
 {% else %}
 <div class="empty-state">
     <div class="empty-state-icon">
@@ -55,7 +70,7 @@
     </div>
     <h4>No Q&A pairs yet</h4>
     <p>Add Q&A pairs to build your knowledge base.</p>
-    <a href="{% url 'knowledge:qa-create' knowledge_base.pk %}" class="btn btn-primary">
+    <a href="{% url 'knowledge:qa_create' knowledge_base.pk %}" class="btn btn-primary">
         <i class="bi bi-plus me-1"></i> Add Q&A Pair
     </a>
 </div>
