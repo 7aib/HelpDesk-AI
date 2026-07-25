@@ -11,6 +11,11 @@ urlpatterns = [
         name="widget-loader",
     ),
     path(
+        "test/",
+        views.EmbedTestView.as_view(),
+        name="test",
+    ),
+    path(
         "<slug:slug>/",
         views.EmbedWidgetView.as_view(),
         name="widget",

@@ -17,6 +17,23 @@ from apps.chatbots.models import Chatbot
 from apps.chat.models import Conversation, Message
 
 
+class EmbedTestView(View):
+    """Test page for the embed widget."""
+
+    @method_decorator(xframe_options_exempt)
+    def get(self, request: HttpRequest) -> HttpResponse:
+        slug = request.GET.get("chatbot", "helpdesk-ai")
+        html = (
+            "<!DOCTYPE html><html><head><title>Embed Test</title></head>"
+            "<body style='font-family:sans-serif;padding:2rem;'>"
+            "<h1>My Website</h1>"
+            "<p>Test page with the chatbot widget embedded.</p>"
+            f'<script src="/embed/widget.js?chatbot={slug}"></script>'
+            "</body></html>"
+        )
+        return HttpResponse(html, content_type="text/html")
+
+
 class EmbedWidgetView(View):
     """
     Serves the standalone chat widget UI inside an iframe.
@@ -32,11 +49,12 @@ class EmbedWidgetView(View):
             allow_embed=True,
         )
 
-        kb = chatbot.knowledge_base
-        has_content = kb and (
-            kb.total_documents > 0
-            or kb.qa_pairs.filter(is_active=True).exists()
-        )
+        from apps.knowledge.models import KnowledgeBase
+
+        kb = KnowledgeBase.objects.filter(chatbot=chatbot).first()
+        has_content = False
+        if kb:
+            has_content = kb.total_documents > 0 or kb.qa_pairs.filter(is_active=True).exists()
 
         # Get or create conversation via cookie
         cookie_name = f"embed_{chatbot.slug}"
@@ -45,10 +63,9 @@ class EmbedWidgetView(View):
         conversation = None
         messages = []
         if session_id:
-            conversation = (
-                Conversation.objects.filter(session_id=session_id, chatbot=chatbot)
-                .first()
-            )
+            conversation = Conversation.objects.filter(
+                session_id=session_id, chatbot=chatbot
+            ).first()
             if conversation:
                 messages = list(conversation.messages.all())
 
