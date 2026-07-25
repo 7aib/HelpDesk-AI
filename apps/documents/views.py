@@ -55,6 +55,15 @@ class DocumentUploadView(LoginRequiredMixin, CreateView):
     template_name = "documents/document_upload.html"
     fields = ["title", "file"]
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["knowledge_base"] = get_object_or_404(
+            KnowledgeBase,
+            id=self.kwargs["kb_id"],
+            chatbot__owner=self.request.user,
+        )
+        return context
+
     def form_valid(self, form):
         """Set knowledge base and trigger processing."""
         knowledge_base = get_object_or_404(

@@ -157,7 +157,7 @@ class Send_messageView(LoginRequiredMixin, View):
             role=Message.Role.ASSISTANT,
             content=result["answer"],
             metadata={
-                "sources": result["sources"],
+                "sources": [{k: str(v) if isinstance(v, uuid.UUID) else v for k, v in s.items()} for s in result["sources"]],
                 "model_used": result["model_used"],
             },
         )
@@ -332,7 +332,7 @@ class ChatStreamView(LoginRequiredMixin, View):
                     role=Message.Role.ASSISTANT,
                     content=complete_response,
                     metadata={
-                        "sources": similar_chunks,
+                        "sources": [{k: str(v) if isinstance(v, uuid.UUID) else v for k, v in s.items()} for s in similar_chunks],
                         "model_used": chatbot.llm_model,
                     },
                 )
