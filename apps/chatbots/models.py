@@ -152,10 +152,11 @@ class Chatbot(BaseModel):
         self.save(update_fields=["status", "updated_at"])
 
     def update_usage_stats(self):
-        """Update conversation and message statistics."""
-        self.total_conversations = self.conversations.count()
+        """Update conversation and message statistics (excluding embed chats)."""
+        active_convs = self.conversations.filter(is_active=True, user__isnull=False)
+        self.total_conversations = active_convs.count()
         self.total_messages = sum(
-            conv.messages.count() for conv in self.conversations.all()
+            conv.messages.count() for conv in active_convs
         )
         self.last_used_at = timezone.now()
         self.save(update_fields=["total_conversations", "total_messages", "last_used_at"])
@@ -187,3 +188,16 @@ class Chatbot(BaseModel):
         return DocumentChunk.objects.filter(
             document__knowledge_base__chatbot=self,
         ).count()
+
+    @property
+    def conversation_count(self) -> int:
+        """Get the live count of active, non-embed conversations."""
+        return self.conversations.filter(is_active=True, user__isnull=False).count()
+
+    @property
+    def live_message_count(self) -> int:
+        """Get the live count of messages across active, non-embed conversations."""
+        return sum(
+            conv.messages.count()
+            for conv in self.conversations.filter(is_active=True, user__isnull=False)
+        )

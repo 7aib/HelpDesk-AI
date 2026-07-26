@@ -26,9 +26,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs: dict) -> dict:
         """Add user stats to context."""
+        from apps.chat.models import Conversation, Message
+
         context = super().get_context_data(**kwargs)
-        context["user_stats"] = UserService.get_user_stats(self.request.user)
-        context["recent_chatbots"] = self.request.user.chatbots.all()[:5]
+        user = self.request.user
+        context["user_stats"] = UserService.get_user_stats(user)
+
+        user_chatbot_ids = user.chatbots.values_list("id", flat=True)
+        context["total_conversations"] = Conversation.objects.filter(
+            chatbot_id__in=user_chatbot_ids, is_active=True, user__isnull=False
+        ).count()
+        context["total_messages"] = Message.objects.filter(
+            conversation__chatbot_id__in=user_chatbot_ids,
+            conversation__is_active=True,
+            conversation__user__isnull=False,
+        ).count()
+        context["recent_chatbots"] = user.chatbots.all()[:5]
         return context
 
 

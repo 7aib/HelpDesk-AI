@@ -111,7 +111,8 @@ class UserService:
         stats = {
             "chatbot_count": Chatbot.objects.filter(owner=user).count(),
             "document_count": Document.objects.filter(
-                knowledge_base__chatbot__owner=user
+                knowledge_base__chatbot__owner=user,
+                status="completed",
             ).count(),
             "is_email_verified": user.is_email_verified,
             "member_since": user.created_at,
