@@ -16,4 +16,5 @@ urlpatterns = [
     path("<uuid:pk>/edit/", views.ChatbotUpdateView.as_view(), name="update"),
     path("<uuid:pk>/delete/", views.ChatbotDeleteView.as_view(), name="delete"),
     path("<uuid:pk>/toggle/", views.ChatbotToggleView.as_view(), name="toggle"),
+    path("<uuid:pk>/ui/", views.ChatbotUICustomizationView.as_view(), name="ui_customization"),
 ]

@@ -8,11 +8,13 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --primary-light: #eef2ff;
-            --surface: #ffffff;
-            --bg-page: #f8fafc;
+            --primary: {{ chatbot.widget_primary_color|default:"#6366f1" }};
+            --primary-hover: {{ chatbot.widget_primary_color|default:"#6366f1" }}dd;
+            --primary-light: {{ chatbot.widget_primary_color|default:"#6366f1" }}1a;
+            --surface: {{ chatbot.widget_agent_msg_color|default:"#ffffff" }};
+            --bg-page: {{ chatbot.widget_background_color|default:"#f8fafc" }};
+            --header-bg: {{ chatbot.widget_header_color|default:"#ffffff" }};
+            --user-msg: {{ chatbot.widget_user_msg_color|default:"#6366f1" }};
             --border: #e2e8f0;
             --text-primary: #0f172a;
             --text-secondary: #64748b;
@@ -33,7 +35,7 @@
 
         /* Header */
         .widget-header {
-            background: var(--surface);
+            background: var(--header-bg);
             border-bottom: 1px solid var(--border);
             padding: 1rem 1.25rem;
             display: flex;
@@ -126,7 +128,7 @@
         }
 
         .widget-msg.user .widget-msg-bubble {
-            background: var(--primary);
+            background: var(--user-msg);
             color: white;
         }
 
@@ -294,7 +296,7 @@
     <div class="widget-disabled">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 0.75rem;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
         <h6>{{ chatbot.name }}</h6>
-        <p>This chatbot is being set up. Please check back later.</p>
+        <p>{{ chatbot.offline_message|default:"This chatbot is being set up. Please check back later." }}</p>
     </div>
     {% else %}
     <!-- Header -->
@@ -323,7 +325,7 @@
             {% else %}
             <div class="widget-empty" id="empty-state">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary); margin-bottom: 0.75rem;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <h6>How can I help you?</h6>
+                <h6>{{ chatbot.welcome_message|default:"How can I help you?" }}</h6>
                 <p>Ask me anything about {{ chatbot.name }}.</p>
             </div>
             {% endif %}
@@ -335,7 +337,7 @@
         <form id="widget-form" onsubmit="widgetSend(event)">
             <input type="hidden" id="widget-conversation-id" value="{{ conversation.id }}">
             <div class="widget-input-form">
-                <input type="text" id="widget-input" placeholder="Type your message..." autocomplete="off" required>
+                <input type="text" id="widget-input" placeholder="{{ chatbot.placeholder_text|default:'Type your message...' }}" autocomplete="off" required>
                 <button type="submit" id="widget-send-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>

@@ -1,0 +1,284 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Customize {{ chatbot.name }} - {{ app_name }}{% endblock %}
+
+{% block page_title %}{{ chatbot.name }} - UI Customization{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Live Preview (Left) -->
+    <div class="col-lg-6">
+        <div class="detail-section" style="position: sticky; top: 1.5rem;">
+            <div class="detail-section-header">
+                <h5><i class="bi bi-eye me-2" style="color: var(--primary);"></i>Live Preview</h5>
+            </div>
+            <div class="detail-section-body" style="display: flex; justify-content: center; padding: 2rem;">
+                <div id="widget-preview" style="width: 340px; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.12); border: 1px solid #e2e8f0;">
+                    <!-- Header -->
+                    <div id="preview-header" style="background: {{ form.widget_header_color.value|default:'#ffffff' }}; border-bottom: 1px solid #e2e8f0; padding: 0.85rem 1rem; display: flex; align-items: center; gap: 0.7rem;">
+                        <div id="preview-header-avatar" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, {{ form.widget_primary_color.value|default:'#6366f1' }}, {{ form.widget_primary_color.value|default:'#6366f1' }}99); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle></svg>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.85rem; font-weight: 600;">{{ chatbot.name }}</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8;">Powered by HelpDesk AI</div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Area -->
+                    <div id="preview-body" style="background: {{ form.widget_background_color.value|default:'#f8fafc' }}; padding: 1.25rem; min-height: 260px; display: flex; flex-direction: column;">
+                        <!-- Empty State -->
+                        <div id="preview-empty" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{{ form.widget_primary_color.value|default:'#6366f1' }}" stroke-width="2" style="margin-bottom: 0.6rem;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            <div id="preview-welcome" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;">{{ form.welcome_message.value|default:"How can I help you?" }}</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">Ask me anything about {{ chatbot.name }}.</div>
+                        </div>
+
+                        <!-- Sample Messages (hidden by default, shown in preview mode) -->
+                        <div id="preview-messages" style="display: none;">
+                            <div style="display: flex; gap: 0.5rem; max-width: 85%; margin-bottom: 0.75rem; align-self: flex-end; flex-direction: row-reverse;">
+                                <div style="width: 26px; height: 26px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 600; color: #64748b; flex-shrink: 0;">You</div>
+                                <div id="preview-user-bubble" style="padding: 0.6rem 0.85rem; border-radius: 12px; font-size: 0.8rem; line-height: 1.5; background: {{ form.widget_user_msg_color.value|default:'#6366f1' }}; color: white;">How do I reset my password?</div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; max-width: 85%; margin-bottom: 0.75rem;">
+                                <div id="preview-agent-avatar" style="width: 26px; height: 26px; border-radius: 50%; background: {{ form.widget_primary_color.value|default:'#6366f1' }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle></svg>
+                                </div>
+                                <div id="preview-agent-bubble" style="padding: 0.6rem 0.85rem; border-radius: 12px; font-size: 0.8rem; line-height: 1.5; background: {{ form.widget_agent_msg_color.value|default:'#ffffff' }}; border: 1px solid #e2e8f0; color: #0f172a;">You can reset your password by clicking the "Forgot Password" link on the login page.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div id="preview-input-area" style="background: {{ form.widget_agent_msg_color.value|default:'#ffffff' }}; border-top: 1px solid #e2e8f0; padding: 0.75rem 0.85rem; display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="text" id="preview-input" disabled placeholder="{{ form.placeholder_text.value|default:'Type your message...' }}" style="flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.8rem; outline: none; background: white; color: #0f172a; font-family: inherit;">
+                        <div id="preview-send-btn" style="width: 34px; height: 34px; border-radius: 50%; background: {{ form.widget_primary_color.value|default:'#6366f1' }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Toggle -->
+            <div class="text-center pb-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="togglePreviewMode()">
+                    <i class="bi bi-chat-dots me-1"></i> <span id="preview-toggle-text">Show Sample Chat</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form (Right) -->
+    <div class="col-lg-6">
+        <form method="post" id="ui-form">
+            {% csrf_token %}
+
+            <!-- Colors -->
+            <div class="detail-section mb-4">
+                <div class="detail-section-header">
+                    <h5><i class="bi bi-palette me-2" style="color: #8b5cf6;"></i>Colors</h5>
+                </div>
+                <div class="detail-section-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label" style="font-size: 0.85rem;">Primary Color</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ form.widget_primary_color }}
+                                <span class="color-hex" data-for="id_widget_primary_color" style="font-size: 0.8rem; color: var(--text-secondary); font-family: monospace;">{{ form.widget_primary_color.value|default:'#6366f1' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-size: 0.85rem;">Background</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ form.widget_background_color }}
+                                <span class="color-hex" data-for="id_widget_background_color" style="font-size: 0.8rem; color: var(--text-secondary); font-family: monospace;">{{ form.widget_background_color.value|default:'#ffffff' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-size: 0.85rem;">Header Color</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ form.widget_header_color }}
+                                <span class="color-hex" data-for="id_widget_header_color" style="font-size: 0.8rem; color: var(--text-secondary); font-family: monospace;">{{ form.widget_header_color.value|default:'#ffffff' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-size: 0.85rem;">User Message</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ form.widget_user_msg_color }}
+                                <span class="color-hex" data-for="id_widget_user_msg_color" style="font-size: 0.8rem; color: var(--text-secondary); font-family: monospace;">{{ form.widget_user_msg_color.value|default:'#6366f1' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-size: 0.85rem;">Agent Message</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ form.widget_agent_msg_color }}
+                                <span class="color-hex" data-for="id_widget_agent_msg_color" style="font-size: 0.8rem; color: var(--text-secondary); font-family: monospace;">{{ form.widget_agent_msg_color.value|default:'#ffffff' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="detail-section mb-4">
+                <div class="detail-section-header">
+                    <h5><i class="bi bi-chat-left-text me-2" style="color: #10b981;"></i>Messages</h5>
+                </div>
+                <div class="detail-section-body">
+                    <div class="mb-3">
+                        <label for="id_welcome_message" class="form-label" style="font-size: 0.85rem;">Welcome Message</label>
+                        <input type="text" name="welcome_message" class="form-control" id="id_welcome_message"
+                               value="{{ form.welcome_message.value|default:'How can I help you?' }}" placeholder="Greeting shown when chat opens">
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_offline_message" class="form-label" style="font-size: 0.85rem;">Offline Message</label>
+                        <input type="text" name="offline_message" class="form-control" id="id_offline_message"
+                               value="{{ form.offline_message.value|default:'' }}" placeholder="Shown when chatbot has no content (optional)">
+                    </div>
+                    <div class="mb-0">
+                        <label for="id_placeholder_text" class="form-label" style="font-size: 0.85rem;">Input Placeholder</label>
+                        <input type="text" name="placeholder_text" class="form-control" id="id_placeholder_text"
+                               value="{{ form.placeholder_text.value|default:'Type your message...' }}" placeholder="Chat input placeholder text">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check-lg me-1"></i> Save Changes
+                </button>
+                <button type="button" class="btn btn-outline-warning px-3" onclick="resetToDefaults()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                </button>
+                <a href="{% url 'chatbots:detail' chatbot.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    var previewEmpty = document.getElementById('preview-empty');
+    var previewMessages = document.getElementById('preview-messages');
+    var showingChat = false;
+
+    // Color field ID to preview element mapping
+    var colorMap = {
+        'id_widget_primary_color': {
+            update: function(val) {
+                document.getElementById('preview-header-avatar').style.background = 'linear-gradient(135deg, ' + val + ', ' + val + '99)';
+                document.getElementById('preview-send-btn').style.background = val;
+                document.getElementById('preview-agent-avatar').style.background = val;
+                document.querySelector('#preview-empty svg').setAttribute('stroke', val);
+                document.getElementById('preview-welcome').style.color = '';
+            },
+            hexSpan: true
+        },
+        'id_widget_background_color': {
+            update: function(val) {
+                document.getElementById('preview-body').style.background = val;
+            },
+            hexSpan: true
+        },
+        'id_widget_header_color': {
+            update: function(val) {
+                document.getElementById('preview-header').style.background = val;
+            },
+            hexSpan: true
+        },
+        'id_widget_user_msg_color': {
+            update: function(val) {
+                document.getElementById('preview-user-bubble').style.background = val;
+            },
+            hexSpan: true
+        },
+        'id_widget_agent_msg_color': {
+            update: function(val) {
+                document.getElementById('preview-agent-bubble').style.background = val;
+                document.getElementById('preview-input-area').style.background = val;
+            },
+            hexSpan: true
+        }
+    };
+
+    // Attach live update listeners to color inputs
+    Object.keys(colorMap).forEach(function(inputId) {
+        var input = document.getElementById(inputId);
+        if (!input) return;
+        var config = colorMap[inputId];
+
+        input.addEventListener('input', function() {
+            config.update(this.value);
+            // Update hex display
+            var span = document.querySelector('.color-hex[data-for="' + inputId + '"]');
+            if (span) span.textContent = this.value;
+        });
+    });
+
+    // Text fields → live preview
+    var welcomeInput = document.getElementById('id_welcome_message');
+    if (welcomeInput) {
+        welcomeInput.addEventListener('input', function() {
+            document.getElementById('preview-welcome').textContent = this.value || 'How can I help you?';
+        });
+    }
+
+    var placeholderInput = document.getElementById('id_placeholder_text');
+    if (placeholderInput) {
+        placeholderInput.addEventListener('input', function() {
+            document.getElementById('preview-input').placeholder = this.value || 'Type your message...';
+        });
+    }
+
+    // Toggle preview mode (empty state vs sample chat)
+    window.togglePreviewMode = function() {
+        showingChat = !showingChat;
+        previewEmpty.style.display = showingChat ? 'none' : 'flex';
+        previewMessages.style.display = showingChat ? 'block' : 'none';
+        document.getElementById('preview-toggle-text').textContent = showingChat ? 'Show Empty State' : 'Show Sample Chat';
+    };
+
+    // Set initial state from form values
+    Object.keys(colorMap).forEach(function(inputId) {
+        var input = document.getElementById(inputId);
+        if (input && input.value) {
+            colorMap[inputId].update(input.value);
+        }
+    });
+
+    // Reset to defaults
+    var defaults = {
+        'id_widget_primary_color': '#6366f1',
+        'id_widget_background_color': '#ffffff',
+        'id_widget_header_color': '#ffffff',
+        'id_widget_user_msg_color': '#6366f1',
+        'id_widget_agent_msg_color': '#ffffff'
+    };
+    var textDefaults = {
+        'id_welcome_message': 'How can I help you?',
+        'id_offline_message': '',
+        'id_placeholder_text': 'Type your message...'
+    };
+
+    window.resetToDefaults = function() {
+        Object.keys(defaults).forEach(function(inputId) {
+            var input = document.getElementById(inputId);
+            if (input) {
+                input.value = defaults[inputId];
+                input.dispatchEvent(new Event('input'));
+            }
+        });
+        Object.keys(textDefaults).forEach(function(inputId) {
+            var input = document.getElementById(inputId);
+            if (input) {
+                input.value = textDefaults[inputId];
+                input.dispatchEvent(new Event('input'));
+            }
+        });
+        // Reset to empty state view
+        if (showingChat) togglePreviewMode();
+    };
+})();
+</script>
+{% endblock %}

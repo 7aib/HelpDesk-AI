@@ -120,6 +120,49 @@ class Chatbot(BaseModel):
         help_text="Allow this chatbot to be embedded on external websites.",
     )
 
+    # UI Customization
+    widget_primary_color = models.CharField(
+        max_length=7,
+        default="#6366f1",
+        help_text="Primary/accent color (hex).",
+    )
+    widget_background_color = models.CharField(
+        max_length=7,
+        default="#ffffff",
+        help_text="Chat background color (hex).",
+    )
+    widget_header_color = models.CharField(
+        max_length=7,
+        default="#ffffff",
+        help_text="Header background color (hex).",
+    )
+    widget_user_msg_color = models.CharField(
+        max_length=7,
+        default="#6366f1",
+        help_text="User message bubble color (hex).",
+    )
+    widget_agent_msg_color = models.CharField(
+        max_length=7,
+        default="#ffffff",
+        help_text="Agent message bubble color (hex).",
+    )
+    welcome_message = models.CharField(
+        max_length=500,
+        default="How can I help you?",
+        help_text="Greeting message shown when chat opens.",
+    )
+    offline_message = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Message shown when the chatbot is unavailable.",
+    )
+    placeholder_text = models.CharField(
+        max_length=100,
+        default="Type your message...",
+        help_text="Chat input placeholder text.",
+    )
+
     class Meta:
         verbose_name = "Chatbot"
         verbose_name_plural = "Chatbots"

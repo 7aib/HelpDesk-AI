@@ -69,3 +69,34 @@ class ChatbotForm(forms.ModelForm):
         self.fields["status"].widget = forms.Select(choices=Chatbot.Status.choices)
 
         self.fields["allow_embed"].widget = forms.CheckboxInput(attrs={"class": "form-check-input"})
+
+
+class ChatbotUIForm(forms.ModelForm):
+    """Form for chatbot UI customization only."""
+
+    class Meta:
+        model = Chatbot
+        fields = [
+            "widget_primary_color",
+            "widget_background_color",
+            "widget_header_color",
+            "widget_user_msg_color",
+            "widget_agent_msg_color",
+            "welcome_message",
+            "offline_message",
+            "placeholder_text",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        color_fields = [
+            "widget_primary_color",
+            "widget_background_color",
+            "widget_header_color",
+            "widget_user_msg_color",
+            "widget_agent_msg_color",
+        ]
+        for field_name in color_fields:
+            self.fields[field_name].widget = forms.TextInput(
+                attrs={"type": "color", "class": "form-control form-control-color"}
+            )

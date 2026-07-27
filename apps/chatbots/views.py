@@ -10,7 +10,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
-from .forms import ChatbotForm
+from .forms import ChatbotForm, ChatbotUIForm
 from .models import Chatbot
 from .selectors import get_chatbot_by_id, get_user_chatbots, search_chatbots
 from .services import ChatbotService
@@ -168,3 +168,29 @@ class ChatbotToggleView(LoginRequiredMixin, View):
             messages.success(request, f"Chatbot '{chatbot.name}' activated.")
 
         return redirect("chatbots:detail", pk=pk)
+
+
+class ChatbotUICustomizationView(LoginRequiredMixin, View):
+    """
+    Dedicated page for chatbot UI customization with live preview.
+    """
+
+    template_name = "chatbots/chatbot_ui.html"
+
+    def get(self, request: HttpRequest, pk: str) -> HttpResponse:
+        chatbot = get_object_or_404(
+            Chatbot, id=pk, owner=request.user, is_deleted=False
+        )
+        form = ChatbotUIForm(instance=chatbot)
+        return render(request, self.template_name, {"chatbot": chatbot, "form": form})
+
+    def post(self, request: HttpRequest, pk: str) -> HttpResponse:
+        chatbot = get_object_or_404(
+            Chatbot, id=pk, owner=request.user, is_deleted=False
+        )
+        form = ChatbotUIForm(request.POST, instance=chatbot)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Widget appearance updated successfully.")
+            return redirect("chatbots:list")
+        return render(request, self.template_name, {"chatbot": chatbot, "form": form})

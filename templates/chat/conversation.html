@@ -50,9 +50,9 @@
             <form id="chat-form" onsubmit="sendMessage(event)">
                 <input type="hidden" id="conversation-id" value="{{ conversation.id }}">
                 <div class="chat-input-form">
-                    <input type="text" id="message-input" class="form-control" placeholder="Type your message..."
+                    <input type="text" id="message-input" class="form-control" placeholder="{{ conversation.chatbot.placeholder_text|default:'Type your message...' }}"
                            autocomplete="off" required>
-                    <button type="submit" class="btn btn-primary chat-send-btn" id="send-btn">
+                    <button type="submit" class="btn chat-send-btn" id="send-btn" style="background: {{ conversation.chatbot.widget_primary_color|default:'#6366f1' }}; color: white; border: none;">
                         <i class="bi bi-send"></i>
                     </button>
                 </div>
