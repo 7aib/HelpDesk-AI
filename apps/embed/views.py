@@ -22,13 +22,13 @@ class EmbedTestView(View):
 
     @method_decorator(xframe_options_exempt)
     def get(self, request: HttpRequest) -> HttpResponse:
-        slug = request.GET.get("chatbot", "helpdesk-ai")
+        pk = request.GET.get("chatbot", "")
         html = (
             "<!DOCTYPE html><html><head><title>Embed Test</title></head>"
             "<body style='font-family:sans-serif;padding:2rem;'>"
             "<h1>My Website</h1>"
             "<p>Test page with the chatbot widget embedded.</p>"
-            f'<script src="/embed/widget.js?chatbot={slug}"></script>'
+            f'<script src="/embed/widget.js?chatbot={pk}"></script>'
             "</body></html>"
         )
         return HttpResponse(html, content_type="text/html")
@@ -37,14 +37,14 @@ class EmbedTestView(View):
 class EmbedWidgetView(View):
     """
     Serves the standalone chat widget UI inside an iframe.
-    No login required. Identified by chatbot slug.
+    No login required. Identified by chatbot UUID pk.
     """
 
     @method_decorator(xframe_options_exempt)
-    def get(self, request: HttpRequest, slug: str) -> HttpResponse:
+    def get(self, request: HttpRequest, pk: str) -> HttpResponse:
         chatbot = get_object_or_404(
             Chatbot,
-            slug=slug,
+            id=pk,
             status=Chatbot.Status.ACTIVE,
             allow_embed=True,
         )
@@ -79,13 +79,13 @@ class EmbedWidgetView(View):
 class EmbedSendView(View):
     """
     Public API endpoint for sending messages from the embed widget.
-    No login required. Uses chatbot slug for identification.
+    No login required. Uses chatbot UUID pk for identification.
     """
 
-    def post(self, request: HttpRequest, slug: str) -> JsonResponse:
+    def post(self, request: HttpRequest, pk: str) -> JsonResponse:
         chatbot = get_object_or_404(
             Chatbot,
-            slug=slug,
+            id=pk,
             status=Chatbot.Status.ACTIVE,
             allow_embed=True,
         )
@@ -172,11 +172,11 @@ class EmbedSendView(View):
 class WidgetLoaderView(View):
     """
     Serves the widget loader JS snippet.
-    GET /embed/widget.js?chatbot=<slug>&position=bottom-right
+    GET /embed/widget.js?chatbot=<pk>&position=bottom-right
     """
 
     def get(self, request: HttpRequest) -> HttpResponse:
-        slug = request.GET.get("chatbot", "")
+        pk = request.GET.get("chatbot", "")
         position = request.GET.get("position", "bottom-right")
 
         parts = position.split("-")
@@ -185,14 +185,14 @@ class WidgetLoaderView(View):
 
         js = (
             "(function() {\n"
-            "    var SLUG = '" + slug + "';\n"
+            "    var PK = '" + pk + "';\n"
             "    var VERT = '" + vertical + "';\n"
             "    var HORIZ = '" + horizontal + "';\n"
             "    var scriptEl = document.currentScript;\n"
             "    var BASE = scriptEl ? scriptEl.src.split('/embed/')[0] : window.location.origin;\n"
-            "    var WIDGET_URL = BASE + '/embed/' + SLUG + '/';\n"
+            "    var WIDGET_URL = BASE + '/embed/' + PK + '/';\n"
             "\n"
-            "    if (!SLUG) return;\n"
+            "    if (!PK) return;\n"
             "\n"
             "    var style = document.createElement('style');\n"
             "    style.textContent = [\n"

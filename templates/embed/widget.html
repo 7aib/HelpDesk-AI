@@ -379,7 +379,7 @@
         sendBtn.disabled = true;
         input.disabled = true;
 
-        fetch('/embed/{{ chatbot.slug }}/send/', {
+        fetch('/embed/{{ chatbot.pk }}/send/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

@@ -16,12 +16,12 @@ urlpatterns = [
         name="test",
     ),
     path(
-        "<slug:slug>/",
+        "<uuid:pk>/",
         views.EmbedWidgetView.as_view(),
         name="widget",
     ),
     path(
-        "<slug:slug>/send/",
+        "<uuid:pk>/send/",
         views.EmbedSendView.as_view(),
         name="send",
     ),
