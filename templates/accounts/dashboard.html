@@ -8,7 +8,7 @@
 <!-- Stats Grid -->
 <div class="row g-4 mb-4">
     <div class="col-md-6 col-xl-3">
-        <div class="stat-card">
+        <div class="stat-card primary">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-card-value">{{ user_stats.chatbot_count|default:0 }}</div>
@@ -21,7 +21,7 @@
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="stat-card">
+        <div class="stat-card success">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-card-value">{{ user_stats.document_count|default:0 }}</div>
@@ -34,7 +34,7 @@
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="stat-card">
+        <div class="stat-card info">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-card-value">{{ total_conversations|default:0 }}</div>
@@ -47,7 +47,7 @@
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="stat-card">
+        <div class="stat-card warning">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-card-value">{{ total_messages|default:0 }}</div>
@@ -86,7 +86,7 @@
                         {% for chatbot in recent_chatbots %}
                         <tr>
                             <td>
-                                <a href="{% url 'chatbots:detail' chatbot.pk %}" class="text-decoration-none fw-semibold" style="color: var(--primary);">
+                                <a href="{% url 'chatbots:detail' chatbot.pk %}" class="text-decoration-none fw-semibold primary-link">
                                     {{ chatbot.name }}
                                 </a>
                             </td>
@@ -97,10 +97,10 @@
                                 <span class="badge-status inactive">{{ chatbot.get_status_display }}</span>
                                 {% endif %}
                             </td>
-                            <td style="font-weight: 500;">{{ chatbot.document_count }}</td>
-                            <td style="font-weight: 500;">{{ chatbot.conversation_count }}</td>
+                            <td class="fw-semibold">{{ chatbot.document_count }}</td>
+                            <td class="fw-semibold">{{ chatbot.conversation_count }}</td>
                             <td>
-                                <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-sm btn-primary" style="padding: 0.25rem 0.65rem;">
+                                <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-chat-dots"></i>
                                 </a>
                             </td>
@@ -133,24 +133,24 @@
             <div class="detail-section-body">
                 <div class="d-flex flex-column gap-2">
                     <a href="{% url 'chatbots:create' %}" class="quick-action">
-                        <i class="bi bi-plus-lg" style="color: var(--primary); background: var(--primary-light);"></i>
+                        <i class="bi bi-plus-lg quick-icon-primary"></i>
                         <div>
-                            <div class="fw-semibold" style="font-size: 0.85rem;">New Chatbot</div>
-                            <div class="text-muted" style="font-size: 0.75rem;">Create an AI assistant</div>
+                            <div class="fw-semibold action-title">New Chatbot</div>
+                            <div class="action-subtitle">Create an AI assistant</div>
                         </div>
                     </a>
                     <a href="{% url 'accounts:profile' %}" class="quick-action">
-                        <i class="bi bi-person" style="color: #10b981; background: #ecfdf5;"></i>
+                        <i class="bi bi-person quick-icon-success"></i>
                         <div>
-                            <div class="fw-semibold" style="font-size: 0.85rem;">Edit Profile</div>
-                            <div class="text-muted" style="font-size: 0.75rem;">Update your information</div>
+                            <div class="fw-semibold action-title">Edit Profile</div>
+                            <div class="action-subtitle">Update your information</div>
                         </div>
                     </a>
                     <a href="{% url 'admin:index' %}" class="quick-action">
-                        <i class="bi bi-shield-lock" style="color: #f59e0b; background: #fffbeb;"></i>
+                        <i class="bi bi-shield-lock quick-icon-warning"></i>
                         <div>
-                            <div class="fw-semibold" style="font-size: 0.85rem;">Admin Panel</div>
-                            <div class="text-muted" style="font-size: 0.75rem;">Manage system settings</div>
+                            <div class="fw-semibold action-title">Admin Panel</div>
+                            <div class="action-subtitle">Manage system settings</div>
                         </div>
                     </a>
                 </div>

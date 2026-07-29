@@ -8,11 +8,11 @@
 <!-- Search & Actions Bar -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <form class="d-flex gap-2" method="get">
-        <div class="input-group" style="width: 280px;">
+        <div class="input-group search-input">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text" name="q" class="form-control" placeholder="Search chatbots..." value="{{ search_query }}">
         </div>
-        <select name="status" class="form-select" style="width: auto; min-width: 140px;">
+        <select name="status" class="form-select status-select">
             <option value="">All Status</option>
             <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
             <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
@@ -32,8 +32,8 @@
         <div class="chatbot-card">
             <div class="chatbot-card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="mb-0" style="font-weight: 700;">
-                        <a href="{% url 'chatbots:detail' chatbot.pk %}" class="text-decoration-none" style="color: var(--text-primary);">
+                    <h5 class="fw-bold mb-0">
+                        <a href="{% url 'chatbots:detail' chatbot.pk %}" class="text-decoration-none text-reset">
                             {{ chatbot.name }}
                         </a>
                     </h5>
@@ -43,7 +43,7 @@
                     <span class="badge-status {{ chatbot.status }}">{{ chatbot.get_status_display }}</span>
                     {% endif %}
                 </div>
-                <p class="text-muted mb-3" style="font-size: 0.85rem; line-height: 1.5;">{{ chatbot.description|truncatewords:12|default:"No description provided" }}</p>
+                <p class="text-muted mb-3 card-text">{{ chatbot.description|truncatewords:12|default:"No description provided" }}</p>
 
                 <div class="chatbot-stats">
                     <div class="chatbot-stat-item">
@@ -64,16 +64,16 @@
                     <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-primary btn-sm flex-fill">
                         <i class="bi bi-chat-dots me-1"></i> Chat
                     </a>
-                    <a href="{% url 'chatbots:detail' chatbot.pk %}" class="btn btn-outline-secondary btn-sm" style="padding: 0.35rem 0.65rem;">
+                    <a href="{% url 'chatbots:detail' chatbot.pk %}" class="btn btn-outline-secondary btn-sm btn-icon">
                         <i class="bi bi-eye"></i>
                     </a>
-                    <a href="{% url 'chatbots:update' chatbot.pk %}" class="btn btn-outline-secondary btn-sm" style="padding: 0.35rem 0.65rem;">
+                    <a href="{% url 'chatbots:update' chatbot.pk %}" class="btn btn-outline-secondary btn-sm btn-icon">
                         <i class="bi bi-pencil"></i>
                     </a>
                 </div>
             </div>
             <div class="chatbot-card-footer">
-                <small class="text-muted" style="font-size: 0.75rem;">
+                <small class="text-muted">
                     <i class="bi bi-cpu me-1"></i> {{ chatbot.llm_model }} &middot;
                     <i class="bi bi-clock ms-1 me-1"></i> {{ chatbot.created_at|timesince }} ago
                 </small>

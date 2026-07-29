@@ -15,7 +15,7 @@
 </div>
 
 {% if documents %}
-<div class="detail-section">
+<div class="table-container">
     <div class="table-responsive">
         <table class="table">
             <thead>
@@ -33,7 +33,7 @@
                 {% for doc in documents %}
                 <tr>
                     <td>
-                        <a href="{% url 'documents:detail' doc.pk %}" class="text-decoration-none fw-semibold" style="color: var(--primary);">
+                        <a href="{% url 'documents:detail' doc.pk %}" class="text-decoration-none fw-semibold primary-link">
                             {{ doc.title }}
                         </a>
                     </td>
@@ -49,11 +49,11 @@
                         <span class="badge-status inactive">Pending</span>
                         {% endif %}
                     </td>
-                    <td style="font-weight: 500;">{{ doc.file_size_display }}</td>
-                    <td style="font-weight: 500;">{{ doc.chunk_count }}</td>
-                    <td style="font-size: 0.85rem;">{{ doc.created_at|timesince }} ago</td>
+                    <td class="fw-semibold">{{ doc.file_size_display }}</td>
+                    <td class="fw-semibold">{{ doc.chunk_count }}</td>
+                    <td>{{ doc.created_at|timesince }} ago</td>
                     <td>
-                        <a href="{% url 'documents:delete' doc.pk knowledge_base.pk %}" class="btn btn-sm btn-outline-danger" style="padding: 0.25rem 0.5rem;">
+                        <a href="{% url 'documents:delete' doc.pk knowledge_base.pk %}" class="btn btn-sm btn-outline-danger btn-icon">
                             <i class="bi bi-trash"></i>
                         </a>
                     </td>

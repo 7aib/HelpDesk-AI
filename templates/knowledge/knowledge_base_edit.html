@@ -47,19 +47,19 @@
             </div>
             <div class="detail-section-body">
                 <div class="d-flex flex-column gap-3">
-                    <div class="d-flex justify-content-between" style="font-size: 0.85rem;">
+                    <div class="d-flex justify-content-between info-row">
                         <span class="text-muted">Chatbot</span>
                         <a href="{% url 'chatbots:detail' knowledge_base.chatbot.pk %}" class="fw-semibold text-decoration-none">{{ knowledge_base.chatbot.name }}</a>
                     </div>
-                    <div class="d-flex justify-content-between" style="font-size: 0.85rem;">
+                    <div class="d-flex justify-content-between info-row">
                         <span class="text-muted">Documents</span>
                         <span class="fw-semibold">{{ knowledge_base.total_documents }}</span>
                     </div>
-                    <div class="d-flex justify-content-between" style="font-size: 0.85rem;">
+                    <div class="d-flex justify-content-between info-row">
                         <span class="text-muted">Chunks</span>
                         <span class="fw-semibold">{{ knowledge_base.total_chunks }}</span>
                     </div>
-                    <div class="d-flex justify-content-between" style="font-size: 0.85rem;">
+                    <div class="d-flex justify-content-between info-row">
                         <span class="text-muted">Created</span>
                         <span class="fw-semibold">{{ knowledge_base.created_at|date:"M d, Y" }}</span>
                     </div>

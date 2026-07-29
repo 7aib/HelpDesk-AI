@@ -17,7 +17,7 @@
                         {% else %}
                         <span class="badge-status {{ chatbot.status }} mb-2">{{ chatbot.get_status_display }}</span>
                         {% endif %}
-                        <p class="text-muted mb-0" style="font-size: 0.9rem;">{{ chatbot.description|default:"No description provided" }}</p>
+                        <p class="text-muted mb-0">{{ chatbot.description|default:"No description provided" }}</p>
                     </div>
                     <div class="d-flex gap-2">
                         <a href="{% url 'chat:chat' chatbot.pk %}" class="btn btn-primary btn-sm">
@@ -62,7 +62,7 @@
         <!-- Knowledge Base -->
         <div class="detail-section mb-4">
             <div class="detail-section-header">
-                <h5><i class="bi bi-book me-2" style="color: var(--primary);"></i>Knowledge Base</h5>
+                <h5><i class="bi bi-book me-2 primary-icon"></i>Knowledge Base</h5>
                 {% if knowledge_base %}
                 <a href="{% url 'knowledge:detail' knowledge_base.pk %}" class="btn btn-sm btn-outline-primary">Manage</a>
                 {% endif %}
@@ -71,8 +71,8 @@
                 {% if knowledge_base %}
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="mb-1" style="font-weight: 700;">{{ knowledge_base.name }}</h6>
-                        <p class="text-muted mb-0" style="font-size: 0.8rem;">
+                        <h6 class="fw-bold mb-1">{{ knowledge_base.name }}</h6>
+                        <p class="text-muted small mb-0">
                             {{ knowledge_base.total_documents }} documents &middot;
                             {{ knowledge_base.total_chunks }} chunks &middot;
                             {{ knowledge_base.total_tokens }} tokens
@@ -96,16 +96,16 @@
                     <i class="bi bi-plus me-1"></i> New Chat
                 </a>
             </div>
-            <div class="detail-section-body" style="padding: 0;">
+            <div class="detail-section-body p-0">
                 {% with conversations=chatbot.conversations.all %}
                 {% if conversations %}
                 {% for conv in conversations|slice:":5" %}
-                <a href="{% url 'chat:conversation' conv.pk %}" class="conv-item" style="margin: 0 0.75rem;">
+                <a href="{% url 'chat:conversation' conv.pk %}" class="conv-item conv-item-narrow">
                     <div>
-                        <div class="fw-semibold" style="font-size: 0.85rem;">{{ conv.title|default:conv.session_id }}</div>
-                        <small class="text-muted" style="font-size: 0.75rem;">{{ conv.message_count }} messages</small>
+                        <div class="fw-semibold">{{ conv.title|default:conv.session_id }}</div>
+                        <small class="text-muted">{{ conv.message_count }} messages</small>
                     </div>
-                    <small class="text-muted" style="font-size: 0.75rem;">{{ conv.last_message_at|timesince }} ago</small>
+                    <small class="text-muted">{{ conv.last_message_at|timesince }} ago</small>
                 </a>
                 {% endfor %}
                 {% else %}
@@ -124,14 +124,14 @@
             <div class="detail-section-header">
                 <h6><i class="bi bi-cpu me-1"></i> Model Settings</h6>
             </div>
-            <div class="detail-section-body" style="padding: 0;">
+            <div class="detail-section-body p-0">
                 <div class="model-settings-item">
                     <span class="label">LLM</span>
                     <span class="value">{{ chatbot.llm_model }}</span>
                 </div>
                 <div class="model-settings-item">
                     <span class="label">Embedding</span>
-                    <span class="value" style="font-size: 0.8rem;">{{ chatbot.embedding_model }}</span>
+                    <span class="value small">{{ chatbot.embedding_model }}</span>
                 </div>
                 <div class="model-settings-item">
                     <span class="label">Temperature</span>
@@ -190,9 +190,9 @@
             </div>
             <div class="detail-section-body">
                 {% if chatbot.is_active %}
-                <p class="text-muted mb-3" style="font-size: 0.8rem;">Add this snippet to your website to embed this chatbot as a floating widget.</p>
+                <p class="text-muted mb-3 small">Add this snippet to your website to embed this chatbot as a floating widget.</p>
                 <div class="mb-3">
-                    <pre id="embed-code" style="background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem; font-size: 0.75rem; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 0.5rem;">&lt;script src="{{ request.scheme }}://{{ site_domain }}/embed/widget.js?chatbot={{ chatbot.pk }}"&gt;&lt;/script&gt;</pre>
+                    <pre id="embed-code" class="snippet-box mb-2">&lt;script src="{{ request.scheme }}://{{ site_domain }}/embed/widget.js?chatbot={{ chatbot.pk }}"&gt;&lt;/script&gt;</pre>
                     <button class="btn btn-sm btn-outline-primary" onclick="copyEmbedCode()" id="copy-btn">
                         <i class="bi bi-clipboard me-1"></i> Copy
                     </button>
@@ -205,10 +205,10 @@
                         <i class="bi bi-x-circle-fill text-warning me-1"></i> Embedding is disabled
                         {% endif %}
                     </small>
-                    <a href="{% url 'chatbots:update' chatbot.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.75rem;">Configure</a>
+                    <a href="{% url 'chatbots:update' chatbot.pk %}" class="btn btn-sm btn-outline-secondary btn-xs-text">Configure</a>
                 </div>
                 {% else %}
-                <p class="text-muted mb-0" style="font-size: 0.8rem;">
+                <p class="text-muted mb-0 small">
                     <i class="bi bi-info-circle me-1"></i>
                     Activate the chatbot first to get the embed code.
                 </p>

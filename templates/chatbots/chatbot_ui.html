@@ -8,51 +8,51 @@
 <div class="row g-4">
     <!-- Live Preview (Left) -->
     <div class="col-lg-6">
-        <div class="detail-section" style="position: sticky; top: 1.5rem;">
+        <div class="detail-section sticky-preview">
             <div class="detail-section-header">
-                <h5><i class="bi bi-eye me-2" style="color: var(--primary);"></i>Live Preview</h5>
+                <h5><i class="bi bi-eye me-2 primary-icon"></i>Live Preview</h5>
             </div>
             <div class="detail-section-body" style="display: flex; justify-content: center; padding: 2rem;">
-                <div id="widget-preview" style="width: 340px; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.12); border: 1px solid #e2e8f0;">
+                <div id="widget-preview" class="widget-preview-box">
                     <!-- Header -->
-                    <div id="preview-header" style="background: {{ form.widget_header_color.value|default:'#ffffff' }}; border-bottom: 1px solid #e2e8f0; padding: 0.85rem 1rem; display: flex; align-items: center; gap: 0.7rem;">
+                    <div id="preview-header" style="background: {{ form.widget_header_color.value|default:'#ffffff' }};">
                         <div id="preview-header-avatar" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, {{ form.widget_primary_color.value|default:'#6366f1' }}, {{ form.widget_primary_color.value|default:'#6366f1' }}99); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle></svg>
                         </div>
                         <div>
-                            <div style="font-size: 0.85rem; font-weight: 600;">{{ chatbot.name }}</div>
-                            <div style="font-size: 0.7rem; color: #94a3b8;">Powered by HelpDesk AI</div>
+                            <div class="preview-chatbot-name">{{ chatbot.name }}</div>
+                            <div class="preview-powered-by">Powered by HelpDesk AI</div>
                         </div>
                     </div>
 
                     <!-- Messages Area -->
-                    <div id="preview-body" style="background: {{ form.widget_background_color.value|default:'#f8fafc' }}; padding: 1.25rem; min-height: 260px; display: flex; flex-direction: column;">
+                    <div id="preview-body" style="background: {{ form.widget_background_color.value|default:'#f8fafc' }};" class="preview-body">
                         <!-- Empty State -->
-                        <div id="preview-empty" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                        <div id="preview-empty" class="preview-empty-state">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{{ form.widget_primary_color.value|default:'#6366f1' }}" stroke-width="2" style="margin-bottom: 0.6rem;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                            <div id="preview-welcome" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;">{{ form.welcome_message.value|default:"How can I help you?" }}</div>
-                            <div style="font-size: 0.75rem; color: #94a3b8;">Ask me anything about {{ chatbot.name }}.</div>
+                            <div id="preview-welcome" class="preview-welcome-text">{{ form.welcome_message.value|default:"How can I help you?" }}</div>
+                            <div class="preview-subtitle">Ask me anything about {{ chatbot.name }}.</div>
                         </div>
 
                         <!-- Sample Messages (hidden by default, shown in preview mode) -->
                         <div id="preview-messages" style="display: none;">
-                            <div style="display: flex; gap: 0.5rem; max-width: 85%; margin-bottom: 0.75rem; align-self: flex-end; flex-direction: row-reverse;">
-                                <div style="width: 26px; height: 26px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 600; color: #64748b; flex-shrink: 0;">You</div>
-                                <div id="preview-user-bubble" style="padding: 0.6rem 0.85rem; border-radius: 12px; font-size: 0.8rem; line-height: 1.5; background: {{ form.widget_user_msg_color.value|default:'#6366f1' }}; color: white;">How do I reset my password?</div>
+                            <div class="preview-msg-row preview-msg-user">
+                                <div class="preview-msg-avatar preview-user-avatar">You</div>
+                                <div id="preview-user-bubble" class="preview-bubble preview-bubble-user" style="background: {{ form.widget_user_msg_color.value|default:'#6366f1' }};">How do I reset my password?</div>
                             </div>
-                            <div style="display: flex; gap: 0.5rem; max-width: 85%; margin-bottom: 0.75rem;">
-                                <div id="preview-agent-avatar" style="width: 26px; height: 26px; border-radius: 50%; background: {{ form.widget_primary_color.value|default:'#6366f1' }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <div class="preview-msg-row preview-msg-agent">
+                                <div id="preview-agent-avatar" class="preview-msg-avatar preview-agent-circle" style="background: {{ form.widget_primary_color.value|default:'#6366f1' }};">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle></svg>
                                 </div>
-                                <div id="preview-agent-bubble" style="padding: 0.6rem 0.85rem; border-radius: 12px; font-size: 0.8rem; line-height: 1.5; background: {{ form.widget_agent_msg_color.value|default:'#ffffff' }}; border: 1px solid #e2e8f0; color: #0f172a;">You can reset your password by clicking the "Forgot Password" link on the login page.</div>
+                                <div id="preview-agent-bubble" class="preview-bubble preview-bubble-agent" style="background: {{ form.widget_agent_msg_color.value|default:'#ffffff' }};">You can reset your password by clicking the "Forgot Password" link on the login page.</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Input Area -->
-                    <div id="preview-input-area" style="background: {{ form.widget_agent_msg_color.value|default:'#ffffff' }}; border-top: 1px solid #e2e8f0; padding: 0.75rem 0.85rem; display: flex; gap: 0.5rem; align-items: center;">
-                        <input type="text" id="preview-input" disabled placeholder="{{ form.placeholder_text.value|default:'Type your message...' }}" style="flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.8rem; outline: none; background: white; color: #0f172a; font-family: inherit;">
-                        <div id="preview-send-btn" style="width: 34px; height: 34px; border-radius: 50%; background: {{ form.widget_primary_color.value|default:'#6366f1' }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <div id="preview-input-area" style="background: {{ form.widget_agent_msg_color.value|default:'#ffffff' }};">
+                        <input type="text" id="preview-input" disabled placeholder="{{ form.placeholder_text.value|default:'Type your message...' }}" class="preview-input-field">
+                        <div id="preview-send-btn" style="background: {{ form.widget_primary_color.value|default:'#6366f1' }};" class="preview-send-circle">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </div>
                     </div>
@@ -77,6 +77,7 @@
             <div class="detail-section mb-4">
                 <div class="detail-section-header">
                     <h5><i class="bi bi-palette me-2" style="color: #8b5cf6;"></i>Colors</h5>
+
                 </div>
                 <div class="detail-section-body">
                     <div class="row g-3">
@@ -123,6 +124,7 @@
             <div class="detail-section mb-4">
                 <div class="detail-section-header">
                     <h5><i class="bi bi-chat-left-text me-2" style="color: #10b981;"></i>Messages</h5>
+
                 </div>
                 <div class="detail-section-body">
                     <div class="mb-3">
