@@ -88,6 +88,8 @@ class ChatbotDetailView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         """Add chatbot to context."""
+        from django.contrib.sites.shortcuts import get_current_site
+
         context = super().get_context_data(**kwargs)
         chatbot = get_object_or_404(
             Chatbot,
@@ -97,6 +99,7 @@ class ChatbotDetailView(LoginRequiredMixin, TemplateView):
         )
         context["chatbot"] = chatbot
         context["knowledge_base"] = chatbot.knowledge_base
+        context["site_domain"] = get_current_site(self.request).domain
         return context
 
 
