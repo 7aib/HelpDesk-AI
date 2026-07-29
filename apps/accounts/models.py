@@ -63,6 +63,12 @@ class User(AbstractUser):
         default=False,
         help_text="Whether the user's email has been verified.",
     )
+    role = models.CharField(
+        max_length=20,
+        choices=[("CEO", "CEO"), ("customer", "Customer")],
+        default="customer",
+        help_text="User's role in the system.",
+    )
     last_login_ip = models.GenericIPAddressField(
         null=True,
         blank=True,
@@ -100,6 +106,11 @@ class User(AbstractUser):
         """Update the last login IP address."""
         self.last_login_ip = ip_address
         self.save(update_fields=["last_login_ip"])
+
+    @property
+    def is_ceo(self) -> bool:
+        """Check if user has CEO role."""
+        return self.role == "CEO"
 
     @property
     def chatbot_count(self) -> int:
