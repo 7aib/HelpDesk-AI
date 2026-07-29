@@ -69,6 +69,10 @@ class User(AbstractUser):
         default="customer",
         help_text="User's role in the system.",
     )
+    max_chatbots = models.IntegerField(
+        default=1,
+        help_text="Maximum number of chatbots this user can create. Set to 0 for unlimited.",
+    )
     last_login_ip = models.GenericIPAddressField(
         null=True,
         blank=True,

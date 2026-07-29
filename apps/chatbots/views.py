@@ -65,7 +65,13 @@ class ChatbotCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         """Set the owner to the current user and create knowledge base."""
-        form.instance.owner = self.request.user
+        user = self.request.user
+        limit = user.max_chatbots
+        if limit > 0 and user.chatbots.count() >= limit:
+            from django.contrib import messages
+            messages.error(self.request, f"You have reached your chatbot limit ({limit}). Contact the admin to increase it.")
+            return self.form_invalid(form)
+        form.instance.owner = user
         response = super().form_valid(form)
         from apps.knowledge.models import KnowledgeBase
         KnowledgeBase.objects.get_or_create(

@@ -17,8 +17,8 @@ class CustomUserAdmin(UserAdmin):
     list_display = [
         "username",
         "email",
-        "first_name",
-        "last_name",
+        "role",
+        "max_chatbots",
         "company",
         "is_staff",
         "is_active",
@@ -27,6 +27,7 @@ class CustomUserAdmin(UserAdmin):
         "is_staff",
         "is_active",
         "is_email_verified",
+        "role",
     ]
     search_fields = [
         "username",
@@ -49,6 +50,8 @@ class CustomUserAdmin(UserAdmin):
                     "timezone",
                     "is_email_verified",
                     "last_login_ip",
+                    "role",
+                    "max_chatbots",
                 ),
             },
         ),
