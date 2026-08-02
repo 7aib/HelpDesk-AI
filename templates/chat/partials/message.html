@@ -1,5 +1,5 @@
 {% if message.role == "user" %}
-<div class="message">
+<div class="message user">
     <div class="message-avatar user">You</div>
     <div class="message-content user">
         {{ message.content|linebreaksbr }}
@@ -16,10 +16,15 @@
         <div class="message-sources">
             <strong><i class="bi bi-link-45deg me-1"></i>Sources:</strong>
             {% for source in message.metadata.sources %}
-                <span style="background: var(--primary-light); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--primary); font-weight: 500;">{{ source.document_title|default:"Unknown" }}</span>{% if not forloop.last %} {% endif %}
+            <span class="source-chip">{{ source.document_title|default:"Unknown" }}</span>
             {% endfor %}
         </div>
         {% endif %}
+        <div class="message-actions">
+            <button type="button" title="Copy" onclick="copyMessage(this)">
+                <i class="bi bi-clipboard"></i>
+            </button>
+        </div>
     </div>
 </div>
 {% endif %}

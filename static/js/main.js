@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', function () {
     initFlashMessages();
     initAutoDismiss();
     initFileUpload();
+    initTheme();
+    initSidebarCollapse();
+    initChatSidebarToggle();
 });
 
 function initFlashMessages() {
@@ -64,6 +67,85 @@ function initFileUpload() {
                 if (label) label.textContent = name;
             }
         });
+    });
+}
+
+/* --- Theme Toggle --- */
+function getTheme() {
+    try { return localStorage.getItem('theme') || 'light'; } catch (e) { return 'light'; }
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
+}
+
+function initTheme() {
+    applyTheme(getTheme());
+
+    const toggles = [document.getElementById('themeToggle'), document.getElementById('themeFloat')];
+    toggles.forEach(function (toggle) {
+        if (!toggle) return;
+        toggle.addEventListener('click', function () {
+            const next = getTheme() === 'dark' ? 'light' : 'dark';
+            try { localStorage.setItem('theme', next); } catch (e) {}
+            applyTheme(next);
+        });
+    });
+}
+
+/* --- Sidebar Collapse --- */
+function isMobile() {
+    return window.matchMedia('(max-width: 991.98px)').matches;
+}
+
+function initSidebarCollapse() {
+    const shell = document.getElementById('appShell');
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    if (!shell || !sidebar || !toggle) return;
+
+    if (!isMobile()) {
+        try {
+            const collapsed = localStorage.getItem('sidebar-collapsed') === '1';
+            shell.classList.toggle('sidebar-collapsed', collapsed);
+        } catch (e) {}
+    }
+
+    toggle.addEventListener('click', function () {
+        if (isMobile()) {
+            sidebar.classList.toggle('show');
+            let backdrop = document.querySelector('.sidebar-backdrop');
+            if (sidebar.classList.contains('show')) {
+                if (!backdrop) {
+                    backdrop = document.createElement('div');
+                    backdrop.className = 'sidebar-backdrop';
+                    document.body.appendChild(backdrop);
+                    backdrop.addEventListener('click', function () {
+                        sidebar.classList.remove('show');
+                        backdrop.remove();
+                    });
+                }
+            } else if (backdrop) {
+                backdrop.remove();
+            }
+        } else {
+            const collapsed = shell.classList.toggle('sidebar-collapsed');
+            try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch (e) {}
+        }
+    });
+}
+
+/* --- Chat Sidebar Toggle (mobile) --- */
+function initChatSidebarToggle() {
+    const toggle = document.getElementById('chatSidebarToggle');
+    const sidebar = document.getElementById('chatSidebar');
+    if (!toggle || !sidebar) return;
+
+    toggle.addEventListener('click', function () {
+        sidebar.classList.toggle('show');
     });
 }
 
