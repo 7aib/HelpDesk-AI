@@ -25,4 +25,9 @@ urlpatterns = [
         views.EmbedSendView.as_view(),
         name="send",
     ),
+    path(
+        "<uuid:pk>/stream/",
+        views.EmbedStreamView.as_view(),
+        name="stream",
+    ),
 ]

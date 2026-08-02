@@ -5,6 +5,7 @@ Handles embedding generation, vector search, and RAG pipeline.
 
 import json
 import logging
+import uuid
 from typing import Any, Optional
 
 from django.conf import settings
@@ -472,3 +473,134 @@ class RAGPipeline:
         )
 
         return "\n".join(prompt_parts)
+
+
+def stream_chat_response(
+    conversation,
+    chatbot,
+    message_content: str,
+    conversation_history: list[dict] = None,
+    no_content_message: str = (
+        "This chatbot does not have any documents or Q&A pairs in its knowledge base. "
+        "Please add content before chatting."
+    ),
+):
+    """
+    Generator yielding SSE-encoded events for a streaming chat response.
+
+    Yields raw ``data: {...}\\n\\n`` lines (token / done / error events) so any
+    caller can wrap them in a StreamingHttpResponse. Reuses the RAG pipeline for
+    retrieval and Ollama for token generation, persists the assistant message,
+    and updates conversation/chatbot usage stats.
+
+    Args:
+        conversation: The Conversation instance to append messages to.
+        chatbot: The Chatbot instance answering the message.
+        message_content: The user's message text.
+        conversation_history: Prior messages to include as context.
+        no_content_message: Message sent when the knowledge base is empty.
+    """
+    from apps.chat.models import Message
+
+    # Check if chatbot has documents or QA pairs in its knowledge base
+    kb = chatbot.knowledge_base
+    has_content = kb and (
+        kb.total_documents > 0
+        or kb.qa_pairs.filter(is_active=True).exists()
+    )
+
+    if not has_content:
+        yield f"data: {json.dumps({'token': no_content_message})}\n\n"
+        yield f"data: {json.dumps({'done': True, 'conversation_id': str(conversation.id)})}\n\n"
+        return
+
+    try:
+        embedding_service = EmbeddingService()
+        search_service = VectorSearchService()
+
+        question_embedding = embedding_service.generate_embedding(
+            message_content,
+            model_name=chatbot.embedding_model,
+        )
+
+        similar_chunks = search_service.search_similar_chunks(
+            query_embedding=question_embedding,
+            chatbot_id=str(chatbot.id),
+            top_k=chatbot.top_k,
+        )
+
+        # Also search Q&A pairs
+        qa_pairs = []
+        if chatbot.knowledge_base:
+            qa_pairs = search_service.search_qa_pairs(
+                query_embedding=question_embedding,
+                knowledge_base_id=str(chatbot.knowledge_base.id),
+                top_k=3,
+            )
+
+        # Build context
+        rag = RAGPipeline()
+        context = rag._build_context(similar_chunks, qa_pairs)
+
+        # Build prompt
+        prompt = rag._build_prompt(
+            question=message_content,
+            context=context,
+            conversation_history=conversation_history,
+        )
+
+        # Stream response from Ollama
+        ollama = OllamaService()
+        full_response = []
+
+        url = f"{ollama.base_url}/api/generate"
+        payload = {
+            "model": chatbot.llm_model,
+            "prompt": prompt,
+            "system": chatbot.system_prompt,
+            "stream": True,
+            "options": {
+                "temperature": chatbot.temperature,
+                "top_p": chatbot.top_p,
+            },
+        }
+
+        import requests
+
+        response = requests.post(url, json=payload, stream=True, timeout=120)
+
+        for line in response.iter_lines():
+            if line:
+                chunk = json.loads(line)
+                if "response" in chunk:
+                    token = chunk["response"]
+                    full_response.append(token)
+                    yield f"data: {json.dumps({'token': token})}\n\n"
+
+        # Save complete response
+        complete_response = "".join(full_response)
+        assistant_message = Message.objects.create(
+            conversation=conversation,
+            role=Message.Role.ASSISTANT,
+            content=complete_response,
+            metadata={
+                "sources": [
+                    {k: str(v) if isinstance(v, uuid.UUID) else v for k, v in s.items()}
+                    for s in similar_chunks
+                ],
+                "model_used": chatbot.llm_model,
+            },
+        )
+
+        # Update stats
+        conversation.message_count = conversation.messages.count()
+        conversation.last_message_at = assistant_message.created_at
+        conversation.save(update_fields=["message_count", "last_message_at"])
+        chatbot.update_usage_stats()
+
+        # Send completion event
+        yield f"data: {json.dumps({'done': True, 'conversation_id': str(conversation.id)})}\n\n"
+
+    except Exception as e:
+        logger.error("Error streaming chat response: %s", e)
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"

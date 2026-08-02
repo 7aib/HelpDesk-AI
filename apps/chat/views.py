@@ -2,7 +2,6 @@
 Views for HelpDesk-AI chat app.
 """
 
-import json
 import uuid
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -248,7 +247,7 @@ class ChatStreamView(LoginRequiredMixin, View):
             )
 
         # Create user message
-        Message.objects.create(
+        user_message = Message.objects.create(
             conversation=conversation,
             role=Message.Role.USER,
             content=message_content,
@@ -261,104 +260,19 @@ class ChatStreamView(LoginRequiredMixin, View):
             .values("role", "content")
         )
 
-        # Check if chatbot has documents or QA pairs in its knowledge base
-        kb = chatbot.knowledge_base
-        has_content = kb and (kb.total_documents > 0 or kb.qa_pairs.filter(is_active=True).exists())
-        if not has_content:
-            assistant_message = Message.objects.create(
-                conversation=conversation,
-                role=Message.Role.ASSISTANT,
-                content="This chatbot does not have any documents or Q&A pairs in its knowledge base. Please add content before chatting.",
-            )
-            def error_stream():
-                yield f"data: {json.dumps({'token': assistant_message.content})}\n\n"
-                yield f"data: {json.dumps({'done': True, 'conversation_id': str(conversation.id)})}\n\n"
-
-            response = StreamingHttpResponse(error_stream(), content_type="text/event-stream")
-            response["Cache-Control"] = "no-cache"
-            return response
-
-        def generate():
-            """Generate streaming response."""
-            from apps.rag.services import EmbeddingService, VectorSearchService
-
-            # Get similar chunks
-            embedding_service = EmbeddingService()
-            search_service = VectorSearchService()
-
-            question_embedding = embedding_service.generate_embedding(
-                message_content,
-                model_name=chatbot.embedding_model,
-            )
-
-            similar_chunks = search_service.search_similar_chunks(
-                query_embedding=question_embedding,
-                chatbot_id=str(chatbot.id),
-                top_k=chatbot.top_k,
-            )
-
-            # Build context
-            rag = RAGPipeline()
-            context = rag._build_context(similar_chunks, [])
-
-            # Build prompt
-            prompt = rag._build_prompt(
-                question=message_content,
-                context=context,
-                conversation_history=conversation_history,
-            )
-
-            # Stream response from Ollama
-            ollama = OllamaService()
-            full_response = []
-
-            try:
-                url = f"{ollama.base_url}/api/generate"
-                payload = {
-                    "model": chatbot.llm_model,
-                    "prompt": prompt,
-                    "system": chatbot.system_prompt,
-                    "stream": True,
-                    "options": {
-                        "temperature": chatbot.temperature,
-                        "top_p": chatbot.top_p,
-                    },
-                }
-
-                import requests
-                response = requests.post(url, json=payload, stream=True, timeout=120)
-
-                for line in response.iter_lines():
-                    if line:
-                        chunk = json.loads(line)
-                        if "response" in chunk:
-                            token = chunk["response"]
-                            full_response.append(token)
-                            yield f"data: {json.dumps({'token': token})}\n\n"
-
-                # Save complete response
-                complete_response = "".join(full_response)
-                Message.objects.create(
-                    conversation=conversation,
-                    role=Message.Role.ASSISTANT,
-                    content=complete_response,
-                    metadata={
-                        "sources": [{k: str(v) if isinstance(v, uuid.UUID) else v for k, v in s.items()} for s in similar_chunks],
-                        "model_used": chatbot.llm_model,
-                    },
-                )
-
-                # Send completion event
-                yield f"data: {json.dumps({'done': True, 'conversation_id': str(conversation.id)})}\n\n"
-
-            except Exception as e:
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        from apps.rag.services import stream_chat_response
 
         response = StreamingHttpResponse(
-            generate(),
+            stream_chat_response(
+                conversation=conversation,
+                chatbot=chatbot,
+                message_content=message_content,
+                conversation_history=conversation_history,
+            ),
             content_type="text/event-stream",
         )
         response["Cache-Control"] = "no-cache"
         response["X-Accel-Buffering"] = "no"
+        response["X-Conversation-ID"] = str(conversation.id)
 
         return response

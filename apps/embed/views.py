@@ -5,7 +5,12 @@ Public embed views for HelpDesk-AI chatbot widget.
 import json
 import uuid
 
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    JsonResponse,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.decorators.clickjacking import xframe_options_exempt
@@ -167,6 +172,81 @@ class EmbedSendView(View):
             "answer": assistant_content,
             "conversation_id": str(conversation.id),
         })
+
+
+@method_decorator([csrf_exempt, xframe_options_exempt], name="dispatch")
+class EmbedStreamView(View):
+    """
+    Public streaming endpoint for the embed widget.
+    No login required. Uses chatbot UUID pk for identification.
+    """
+
+    def post(self, request: HttpRequest, pk: str) -> HttpResponse:
+        chatbot = get_object_or_404(
+            Chatbot,
+            id=pk,
+            status=Chatbot.Status.ACTIVE,
+            allow_embed=True,
+        )
+
+        message_content = request.POST.get("message", "").strip()
+        conversation_id = request.POST.get("conversation_id")
+
+        if not message_content:
+            return HttpResponse(
+                f"data: {json.dumps({'error': 'Message cannot be empty'})}\n\n",
+                content_type="text/event-stream",
+            )
+
+        # Get conversation
+        if conversation_id:
+            conversation = get_object_or_404(
+                Conversation,
+                id=conversation_id,
+                chatbot=chatbot,
+            )
+        else:
+            conversation = Conversation.objects.create(
+                chatbot=chatbot,
+                user=None,
+                title=message_content[:50],
+                session_id=str(uuid.uuid4()),
+            )
+
+        # Create user message
+        user_message = Message.objects.create(
+            conversation=conversation,
+            role=Message.Role.USER,
+            content=message_content,
+        )
+
+        # Get conversation history (exclude the message we just created)
+        conversation_history = list(
+            conversation.messages.order_by("created_at")
+            .exclude(pk=user_message.pk)
+            .values("role", "content")
+        )
+
+        from apps.rag.services import stream_chat_response
+
+        response = StreamingHttpResponse(
+            stream_chat_response(
+                conversation=conversation,
+                chatbot=chatbot,
+                message_content=message_content,
+                conversation_history=conversation_history,
+                no_content_message=(
+                    "This chatbot does not have any knowledge base content yet. "
+                    "Please ask the administrator to add documents or Q&A pairs."
+                ),
+            ),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        response["X-Conversation-ID"] = str(conversation.id)
+
+        return response
 
 
 class WidgetLoaderView(View):

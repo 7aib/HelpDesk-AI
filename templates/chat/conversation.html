@@ -108,7 +108,65 @@ function sendMessage(e) {
     if (sendBtn) sendBtn.disabled = true;
     input.disabled = true;
 
-    fetch(`/chat/{{ conversation.chatbot.pk }}/send/`, {
+    const conversationIdInput = document.getElementById('conversation-id');
+    const indicator = document.getElementById('typing-indicator');
+    let assistantBubble = null;
+
+    const ensureBubble = () => {
+        if (assistantBubble) return assistantBubble;
+        indicator.remove();
+        const msg = document.createElement('div');
+        msg.className = 'message';
+        msg.innerHTML = `
+            <div class="message-avatar assistant"><i class="bi bi-robot"></i></div>
+            <div class="message-content assistant"></div>
+        `;
+        container.appendChild(msg);
+        assistantBubble = msg.querySelector('.message-content');
+        return assistantBubble;
+    };
+
+    const showError = (text) => {
+        indicator.remove();
+        container.insertAdjacentHTML('beforeend', `
+            <div class="message">
+                <div class="message-avatar assistant"><i class="bi bi-robot"></i></div>
+                <div class="message-content assistant text-danger">${escapeHtml(text)}</div>
+            </div>
+        `);
+    };
+
+    const handleEvent = (evtText) => {
+        const dataLine = evtText.split('\n').find(l => l.startsWith('data:'));
+        if (!dataLine) return;
+        let payload;
+        try {
+            payload = JSON.parse(dataLine.slice(5).trim());
+        } catch {
+            return;
+        }
+        if (payload.token) {
+            ensureBubble().textContent += payload.token;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        } else if (payload.done) {
+            if (payload.conversation_id) conversationIdInput.value = payload.conversation_id;
+        } else if (payload.error) {
+            if (assistantBubble) {
+                assistantBubble.textContent += '\n' + payload.error;
+            } else {
+                showError(payload.error);
+            }
+        }
+    };
+
+    const finish = () => {
+        if (assistantBubble) {
+            assistantBubble.innerHTML = escapeHtml(assistantBubble.textContent).replace(/\n/g, '<br>');
+        }
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    fetch(`/chat/{{ conversation.chatbot.pk }}/stream/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': '{{ csrf_token }}',
@@ -116,35 +174,36 @@ function sendMessage(e) {
         },
         body: new URLSearchParams({
             'message': message,
-            'conversation_id': document.getElementById('conversation-id').value
+            'conversation_id': conversationIdInput.value
         })
     })
     .then(r => {
         if (!r.ok) throw new Error('Network response was not ok');
         const cid = r.headers.get('X-Conversation-ID');
-        if (cid) document.getElementById('conversation-id').value = cid;
-        return r.text();
+        if (cid) conversationIdInput.value = cid;
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        const pump = () => reader.read().then(({ done, value }) => {
+            if (done) return;
+            buffer += decoder.decode(value, { stream: true });
+            const events = buffer.split('\n\n');
+            buffer = events.pop();
+            events.forEach(handleEvent);
+            return pump();
+        });
+        return pump();
     })
-    .then(html => {
-        const indicator = document.getElementById('typing-indicator');
-        if (indicator) indicator.remove();
-        container.insertAdjacentHTML('beforeend', html);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    })
-    .catch(err => {
-        const indicator = document.getElementById('typing-indicator');
-        if (indicator) indicator.remove();
-        container.insertAdjacentHTML('beforeend', `
-            <div class="message">
-                <div class="message-avatar assistant"><i class="bi bi-robot"></i></div>
-                <div class="message-content assistant text-danger">
-                    Sorry, something went wrong. Please try again.
-                </div>
-            </div>
-        `);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+    .catch(() => {
+        if (assistantBubble) {
+            assistantBubble.textContent += '\nSorry, something went wrong. Please try again.';
+        } else {
+            showError('Sorry, something went wrong. Please try again.');
+        }
     })
     .finally(() => {
+        indicator.remove();
+        finish();
         if (sendBtn) sendBtn.disabled = false;
         input.disabled = false;
         input.focus();

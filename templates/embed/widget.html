@@ -379,42 +379,87 @@
         sendBtn.disabled = true;
         input.disabled = true;
 
-        fetch('/embed/{{ chatbot.pk }}/send/', {
+        var assistantBubble = null;
+        var finished = false;
+        var convoInput = document.getElementById('widget-conversation-id');
+
+        function ensureBubble() {
+            if (assistantBubble) return;
+            var typing = document.getElementById('widget-typing');
+            if (typing) typing.remove();
+            assistantBubble = document.createElement('div');
+            assistantBubble.className = 'widget-msg assistant';
+            assistantBubble.innerHTML =
+                '<div class="widget-msg-avatar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle></svg></div>' +
+                '<div class="widget-msg-bubble"></div>';
+            container.insertAdjacentElement('beforeend', assistantBubble);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function finish() {
+            if (!finished && assistantBubble) {
+                var bubble = assistantBubble.querySelector('.widget-msg-bubble');
+                bubble.innerHTML = escapeWidgetHtml(bubble.textContent).replace(/\n/g, '<br>');
+            }
+            finished = true;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function handleEvent(payload) {
+            if (payload.token != null) {
+                ensureBubble();
+                assistantBubble.querySelector('.widget-msg-bubble').textContent += payload.token;
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            } else if (payload.done) {
+                if (payload.conversation_id) convoInput.value = payload.conversation_id;
+                finish();
+            } else if (payload.error) {
+                ensureBubble();
+                assistantBubble.querySelector('.widget-msg-bubble').textContent += '\nSorry, something went wrong. Please try again.';
+                finish();
+            }
+        }
+
+        fetch('/embed/{{ chatbot.pk }}/stream/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
                 'message': message,
-                'conversation_id': document.getElementById('widget-conversation-id').value
+                'conversation_id': convoInput.value
             })
         })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            var typing = document.getElementById('widget-typing');
-            if (typing) typing.remove();
-
-            if (data.conversation_id) {
-                document.getElementById('widget-conversation-id').value = data.conversation_id;
+        .then(function(r) {
+            if (!r.ok) throw new Error('Network response was not ok');
+            var cid = r.headers.get('X-Conversation-ID');
+            if (cid) convoInput.value = cid;
+            var reader = r.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+            function pump() {
+                return reader.read().then(function(res) {
+                    if (res.done) return;
+                    buffer += decoder.decode(res.value, { stream: true });
+                    var events = buffer.split('\n\n');
+                    buffer = events.pop();
+                    events.forEach(function(raw) {
+                        var trimmed = raw.trim();
+                        if (!trimmed.indexOf('data:')) {
+                            try {
+                                handleEvent(JSON.parse(trimmed.slice(5).trim()));
+                            } catch (err) {}
+                        }
+                    });
+                    return pump();
+                });
             }
-
-            container.insertAdjacentHTML('beforeend',
-                '<div class="widget-msg assistant">' +
-                '<div class="widget-msg-avatar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle></svg></div>' +
-                '<div class="widget-msg-bubble">' + escapeWidgetHtml(data.answer || 'Sorry, something went wrong.') + '</div></div>');
-
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            return pump();
         })
         .catch(function() {
-            var typing = document.getElementById('widget-typing');
-            if (typing) typing.remove();
-
-            container.insertAdjacentHTML('beforeend',
-                '<div class="widget-msg assistant">' +
-                '<div class="widget-msg-avatar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle></svg></div>' +
-                '<div class="widget-msg-bubble">Sorry, something went wrong. Please try again.</div></div>');
-
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            ensureBubble();
+            assistantBubble.querySelector('.widget-msg-bubble').textContent = 'Sorry, something went wrong. Please try again.';
+            finish();
         })
         .finally(function() {
             sendBtn.disabled = false;
