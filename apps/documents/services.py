@@ -9,6 +9,8 @@ from typing import Any
 
 from django.conf import settings
 
+from apps.rag.services import TOKENS_PER_WORD
+
 logger = logging.getLogger(__name__)
 
 
@@ -190,24 +192,31 @@ class DocumentProcessingService:
     def _clean_text(self, text: str) -> str:
         """
         Clean and normalize extracted text.
-        
+
+        Preserves paragraph structure and Unicode characters (including
+        currency symbols, dashes, and bullets) so the meaning of the
+        source document is not lost before chunking.
+
         Args:
             text: Raw extracted text.
-            
+
         Returns:
             Cleaned text.
         """
         import re
-        
-        # Remove excessive whitespace
-        text = re.sub(r"\s+", " ", text)
-        
-        # Remove special characters but keep punctuation
-        text = re.sub(r"[^\w\s.,!?;:\-\'\"]+", "", text)
-        
-        # Normalize line breaks
+
+        # Normalize line endings
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Collapse runs of spaces/tabs within a line, keep newlines
+        text = re.sub(r"[ \t]+", " ", text)
+
+        # Collapse excessive blank lines into a single paragraph break
         text = re.sub(r"\n{3,}", "\n\n", text)
-        
+
+        # Strip control characters only (keep printable Unicode intact)
+        text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+
         return text.strip()
 
     def _chunk_text(
@@ -217,52 +226,72 @@ class DocumentProcessingService:
         chunk_overlap: int = 50,
     ) -> list[dict[str, Any]]:
         """
-        Split text into chunks with overlap.
-        
+        Split text into token-budgeted chunks with overlap.
+
+        ``chunk_size`` is interpreted as a target token count. Chunks are
+        clamped below the embedding model's token limit (512 tokens for
+        the default bge-small model) so they are never silently truncated
+        during embedding.
+
         Args:
             text: Text to chunk.
-            chunk_size: Maximum chunk size in characters.
-            chunk_overlap: Overlap between chunks.
-            
+            chunk_size: Target chunk size in tokens.
+            chunk_overlap: Token overlap between adjacent chunks.
+
         Returns:
             List of chunk dictionaries.
         """
-        chunks = []
-        
-        # Split by sentences first
         import re
-        sentences = re.split(r"(?<=[.!?])\s+", text)
-        
-        current_chunk = []
-        current_size = 0
-        
-        for sentence in sentences:
-            sentence_size = len(sentence)
-            
-            if current_size + sentence_size > chunk_size and current_chunk:
-                # Save current chunk
-                chunk_text = " ".join(current_chunk)
+
+        # Default embedding model (bge-small-en-v1.5) truncates at 512 tokens
+        MAX_EMBEDDING_TOKENS = 512
+        max_words = int(MAX_EMBEDDING_TOKENS / TOKENS_PER_WORD)
+
+        target_words = max(32, min(int(chunk_size / TOKENS_PER_WORD), max_words))
+        overlap_words = max(0, min(int(chunk_overlap / TOKENS_PER_WORD), target_words - 1))
+        # Reduce the body size by the overlap so totals stay at target_words
+        word_limit = max(32, target_words - overlap_words)
+
+        # Split into sentences, then split any over-long sentence so no
+        # single unit exceeds the word limit.
+        units: list[list[str]] = []
+        for sentence in re.split(r"(?<=[.!?])\s+", text):
+            sentence_words = sentence.split()
+            if not sentence_words:
+                continue
+            for i in range(0, len(sentence_words), word_limit):
+                units.append(sentence_words[i : i + word_limit])
+
+        chunks = []
+        current: list[str] = []
+
+        for unit in units:
+            if current and len(current) + len(unit) > target_words:
+                chunk_text = " ".join(current)
                 chunks.append({
                     "content": chunk_text,
-                    "token_count": len(chunk_text.split()),
+                    "token_count": int(len(current) * TOKENS_PER_WORD),
                     "metadata": {},
                 })
-                
-                # Start new chunk with overlap
-                overlap_text = " ".join(current_chunk[-2:]) if len(current_chunk) > 1 else ""
-                current_chunk = [overlap_text, sentence] if overlap_text else [sentence]
-                current_size = len(overlap_text) + sentence_size + 1
-            else:
-                current_chunk.append(sentence)
-                current_size += sentence_size + 1
-        
-        # Add the last chunk
-        if current_chunk:
-            chunk_text = " ".join(current_chunk)
+                current = current[-overlap_words:] if overlap_words else []
+
+            current.extend(unit)
+
+        if current:
+            chunk_text = " ".join(current)
             chunks.append({
                 "content": chunk_text,
-                "token_count": len(chunk_text.split()),
+                "token_count": int(len(current) * TOKENS_PER_WORD),
                 "metadata": {},
             })
-        
+
+        # Fallback for text that produced no sentence units
+        if not chunks and text.strip():
+            chunk_text = " ".join(text.split())
+            chunks.append({
+                "content": chunk_text,
+                "token_count": int(len(chunk_text.split()) * TOKENS_PER_WORD),
+                "metadata": {},
+            })
+
         return chunks

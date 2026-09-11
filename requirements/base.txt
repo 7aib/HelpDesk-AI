@@ -32,6 +32,7 @@ python-slugify>=8.0,<9.0
 Pillow>=10.0,<11.0
 whitenoise>=6.7,<7.0
 gunicorn>=22.0,<23.0
+pyspellchecker>=0.8,<1.0
 
 # Type checking & code quality
 ruff>=0.5,<1.0

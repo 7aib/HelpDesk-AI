@@ -6,7 +6,7 @@ Handles embedding generation, vector search, and RAG pipeline.
 import json
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 from django.conf import settings
 
@@ -14,6 +14,235 @@ logger = logging.getLogger(__name__)
 
 # Cache for loaded models (lazy loaded)
 _model_cache: dict[str, Any] = {}
+
+DEFAULT_MAX_TOKENS = 500
+
+TOKENS_PER_WORD = 1.3
+
+_spellchecker = None
+
+
+def _get_spellchecker():
+    """Lazily load the shared English spellchecker."""
+    global _spellchecker
+    if _spellchecker is None:
+        from spellchecker import SpellChecker
+
+        _spellchecker = SpellChecker(language="en")
+    return _spellchecker
+
+
+def _levenshtein(a: str, b: str) -> int:
+    """Levenshtein edit distance between two short strings."""
+    if a == b:
+        return 0
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        curr = [i]
+        for j, cb in enumerate(b, 1):
+            curr.append(min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = curr
+    return prev[-1]
+
+
+def _levenshtein_best_match(word: str, possibilities: list[str], cutoff: float):
+    """Return the closest vocabulary word by normalized edit distance."""
+    best = None
+    best_score = 0.0
+    for candidate in possibilities:
+        ratio = 1.0 - (_levenshtein(word, candidate) / max(len(word), len(candidate)))
+        if ratio > best_score:
+            best_score = ratio
+            best = candidate
+    if best is not None and best_score >= cutoff:
+        return best
+    return None
+
+
+def estimate_tokens(text: str) -> int:
+    """Rough token estimate for English text (~1.3 tokens per word)."""
+    if not text:
+        return 0
+    return max(1, int(len(text.split()) * TOKENS_PER_WORD))
+
+
+def truncate_to_tokens(text: str, token_budget: int) -> str:
+    """Truncate text from the front to fit within a token budget."""
+    if not text:
+        return text
+    if token_budget <= 0:
+        return ""
+    word_budget = max(1, int(token_budget / TOKENS_PER_WORD))
+    words = text.split()
+    if len(words) <= word_budget:
+        return text
+    return " ".join(words[:word_budget])
+
+
+class QueryCorrector:
+    """
+    Domain-aware spelling correction for user queries.
+
+    A misspelled query shifts its embedding away from the indexed text
+    and collapses retrieval. This corrects words in a user question that
+    are unknown to the knowledge base, matching them (edit-distance based)
+    to the closest term actually used in the chatbot's documents / Q&A
+    pairs before embedding. Vocabulary is cached per knowledge base and
+    invalidated when the knowledge base changes.
+    """
+
+    _vocab_cache: ClassVar[dict[str, tuple[str, frozenset]]] = {}
+
+    MIN_WORD_LENGTH = 3
+    DOMAIN_MATCH_CUTOFF = 0.7
+    MAX_ENGLISH_EDIT_DISTANCE = 1
+    MAX_VOCAB_WORDS = 8000
+
+    # Common English words are never "corrected"; they are always accepted
+    # so frequent vocabulary outside a small knowledge base stays intact.
+    COMMON_WORDS = frozenset(
+        """
+        a about above after again against all am an and any are aren't as at
+        be because been before being below between both but by can can't cannot
+        could couldn't did didn't do does doesn't doing don't down during each
+        few for from further had hadn't has hasn't have haven't having he he'd
+        he'll he's her here here's hers herself him himself his how how's i i'd
+        i'll i'm i've if in into is isn't it it's its itself let's me more most
+        mustn't my myself no nor not of off on once only or other ought our
+        ours ourselves out over own same shan't she she'd she'll she's should
+        shouldn't so some such than that that's the their theirs them themselves
+        then there there's these they they'd they'll they're they've this those
+        through to too under until up very was wasn't we we'd we'll we're we've
+        were weren't what what's when when's where where's which while who
+        who's whom why why's with won't would wouldn't you you'd you'll you're
+        you've your yours yourself yourselves can please help need want got
+        like much many some thing things question answer info information know
+        how what why where when thanks thank would could should do does did
+        about around place need make back time order now refund return shipping
+        track number account password reset code payment billing customer
+        support service product price cost date total item items list see show
+        status details detail sign update change
+        """.split()  # noqa: SIM905 - word list is more readable as one block
+    )
+
+    @classmethod
+    def _signature(cls, knowledge_base) -> str:
+        return (
+            f"{knowledge_base.id}:"
+            f"{knowledge_base.total_documents}:"
+            f"{knowledge_base.total_chunks}:"
+            f"{knowledge_base.updated_at}"
+        )
+
+    @classmethod
+    def _load_vocabulary(cls, knowledge_base) -> list[str]:
+        from django.db import connection
+
+        sql = r"""
+            SELECT word, COUNT(*) AS cnt
+            FROM (
+                SELECT regexp_replace(
+                    lower(unnest(string_to_array(dc.content, E' '))),
+                    '[^a-z0-9]', '', 'g'
+                ) AS word
+                FROM documents_documentchunk dc
+                JOIN documents_document d ON dc.document_id = d.id
+                JOIN knowledge_knowledgebase kb ON d.knowledge_base_id = kb.id
+                WHERE kb.id = %s
+                  AND d.is_deleted = false
+                  AND d.status = 'completed'
+                UNION ALL
+                SELECT regexp_replace(
+                    lower(unnest(string_to_array(
+                        qp.question || ' ' || qp.answer, E' '))),
+                    '[^a-z0-9]', '', 'g'
+                ) AS word
+                FROM knowledge_qapair qp
+                WHERE qp.knowledge_base_id = %s
+                  AND qp.is_active = true
+            ) words
+            WHERE word <> ''
+            GROUP BY word
+            ORDER BY cnt DESC
+            LIMIT %s
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [knowledge_base.id, knowledge_base.id, cls.MAX_VOCAB_WORDS])
+            rows = cursor.fetchall()
+        words = [row[0] for row in rows if row[0]]
+        # Prefer meaningful (longer) terms when breaking ties
+        words.sort(key=len, reverse=True)
+        return words
+
+    @classmethod
+    def get_vocabulary(cls, knowledge_base) -> frozenset:
+        signature = cls._signature(knowledge_base)
+        cached = cls._vocab_cache.get(str(knowledge_base.id))
+        if cached and cached[0] == signature:
+            return cached[1]
+        vocab = frozenset(cls.COMMON_WORDS) | frozenset(cls._load_vocabulary(knowledge_base))
+        if len(cls._vocab_cache) > 100:
+            cls._vocab_cache.clear()
+        cls._vocab_cache[str(knowledge_base.id)] = (signature, vocab)
+        return vocab
+
+    @classmethod
+    def correct(cls, question: str, knowledge_base) -> str:
+        """Correct unknown words in ``question`` against the KB vocabulary."""
+        if not question or knowledge_base is None:
+            return question
+        vocab = cls.get_vocabulary(knowledge_base)
+        if not vocab:
+            return question
+
+        spell = _get_spellchecker()
+        domain_vocab = list(vocab - set(cls.COMMON_WORDS))
+
+        import re
+
+        tokens = re.findall(r"\S+", question)
+        corrected = []
+        for token in tokens:
+            core_match = re.search(r"[A-Za-z]+", token)
+            if not core_match:
+                corrected.append(token)
+                continue
+            core = core_match.group(0).lower()
+            if (
+                len(core) < cls.MIN_WORD_LENGTH
+                or core in vocab
+                or spell.known([core])
+            ):
+                corrected.append(token)
+                continue
+
+            replacement = _levenshtein_best_match(core, domain_vocab, cls.DOMAIN_MATCH_CUTOFF)
+            if replacement is None:
+                english = spell.correction(core)
+                if (
+                    english
+                    and english != core
+                    and _levenshtein(core, english) <= cls.MAX_ENGLISH_EDIT_DISTANCE
+                ):
+                    replacement = english
+
+            if replacement is None:
+                corrected.append(token)
+                continue
+
+            original_start = token[core_match.start() : core_match.start() + 1]
+            if original_start.isupper():
+                replacement = replacement.capitalize()
+            corrected.append(
+                token[: core_match.start()] + replacement + token[core_match.end() :]
+            )
+            logger.info("Corrected '%s' -> '%s' in query: %s", core, replacement, question)
+
+        return " ".join(corrected)
 
 
 class EmbeddingService:
@@ -23,6 +252,8 @@ class EmbeddingService:
     Supports multiple embedding models with caching to avoid
     reloading models on each request.
     """
+
+    QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 
     @staticmethod
     def get_model(model_name: str = None) -> Any:
@@ -55,6 +286,7 @@ class EmbeddingService:
     def generate_embedding(
         text: str,
         model_name: str = None,
+        is_query: bool = False,
     ) -> list[float]:
         """
         Generate embedding for a single text.
@@ -62,11 +294,16 @@ class EmbeddingService:
         Args:
             text: Text to generate embedding for.
             model_name: Name of the model to use.
+            is_query: Whether this text is a retrieval query rather than a
+                passage. BGE models require a query instruction prefix to
+                align queries with indexed passages.
 
         Returns:
             List of floats representing the embedding.
         """
         model = EmbeddingService.get_model(model_name)
+        if is_query and "bge" in (model_name or settings.DEFAULT_EMBEDDING_MODEL).lower():
+            text = f"{EmbeddingService.QUERY_INSTRUCTION}{text}"
         embedding = model.encode(text)
         return embedding.tolist()
 
@@ -115,6 +352,9 @@ class VectorSearchService:
     Service for vector similarity search using pgvector.
     """
 
+    CHUNK_SIMILARITY_THRESHOLD = 0.5
+    QA_SIMILARITY_THRESHOLD = 0.5
+
     @staticmethod
     def search_similar_chunks(
         query_embedding: list[float],
@@ -154,6 +394,8 @@ class VectorSearchService:
             JOIN knowledge_knowledgebase kb ON d.knowledge_base_id = kb.id
             WHERE
                 kb.chatbot_id = %s
+                AND d.is_deleted = false
+                AND d.status = 'completed'
                 AND dc.embedding IS NOT NULL
                 AND 1 - (dc.embedding <=> %s::vector) >= %s
             ORDER BY dc.embedding <=> %s::vector
@@ -175,6 +417,7 @@ class VectorSearchService:
         query_embedding: list[float],
         knowledge_base_id: str,
         top_k: int = 3,
+        similarity_threshold: float = 0.5,
     ) -> list[dict[str, Any]]:
         """
         Search for similar Q&A pairs.
@@ -183,6 +426,7 @@ class VectorSearchService:
             query_embedding: The query embedding vector.
             knowledge_base_id: The knowledge base ID.
             top_k: Number of results to return.
+            similarity_threshold: Minimum cosine similarity to include a pair.
 
         Returns:
             List of similar Q&A pairs.
@@ -203,12 +447,16 @@ class VectorSearchService:
                 qp.knowledge_base_id = %s
                 AND qp.is_active = true
                 AND qp.embedding IS NOT NULL
+                AND 1 - (qp.embedding <=> %s::vector) >= %s
             ORDER BY qp.embedding <=> %s::vector
             LIMIT %s
         """
 
         with connection.cursor() as cursor:
-            cursor.execute(sql, [embedding_str, knowledge_base_id, embedding_str, top_k])
+            cursor.execute(
+                sql,
+                [embedding_str, knowledge_base_id, embedding_str, similarity_threshold, embedding_str, top_k],
+            )
             columns = [col[0] for col in cursor.description]
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -231,24 +479,27 @@ class OllamaService:
 
     def generate(
         self,
-        prompt: str,
+        messages: list[dict],
         model: str = None,
-        system_prompt: str = "",
-        temperature: float = 0.7,
-        top_p: float = 0.9,
-        max_tokens: int = 2048,
+        temperature: float = 0.2,
+        top_p: float = 0.5,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+        num_ctx: int = None,
         stream: bool = False,
     ) -> str:
         """
-        Generate a response using Ollama.
+        Generate a response using Ollama's chat endpoint.
+
+        Uses ``/api/chat`` with a proper message list so the model's
+        native chat template (e.g. Llama 3.2) is applied.
 
         Args:
-            prompt: The user prompt.
+            messages: List of chat messages with ``role`` and ``content``.
             model: The model to use.
-            system_prompt: System prompt.
             temperature: Temperature for generation.
             top_p: Top P for generation.
             max_tokens: Maximum tokens to generate.
+            num_ctx: Context window size for the model.
             stream: Whether to stream the response.
 
         Returns:
@@ -259,18 +510,21 @@ class OllamaService:
         if model is None:
             model = settings.DEFAULT_LLM
 
-        url = f"{self.base_url}/api/generate"
+        url = f"{self.base_url}/api/chat"
+
+        options = {
+            "temperature": temperature,
+            "top_p": top_p,
+            "num_predict": max_tokens,
+        }
+        if num_ctx:
+            options["num_ctx"] = num_ctx
 
         payload = {
             "model": model,
-            "prompt": prompt,
-            "system": system_prompt,
+            "messages": messages,
             "stream": stream,
-            "options": {
-                "temperature": temperature,
-                "top_p": top_p,
-                "num_predict": max_tokens,
-            },
+            "options": options,
         }
 
         try:
@@ -280,7 +534,7 @@ class OllamaService:
             if stream:
                 return self._handle_stream_response(response)
             else:
-                return response.json().get("response", "")
+                return response.json().get("message", {}).get("content", "")
 
         except http_requests.exceptions.Timeout:
             logger.error("Ollama request timed out")
@@ -290,13 +544,15 @@ class OllamaService:
             raise
 
     def _handle_stream_response(self, response) -> str:
-        """Handle streaming response from Ollama."""
+        """Handle streaming response from Ollama chat endpoint."""
         full_response = []
         for line in response.iter_lines():
             if line:
                 chunk = json.loads(line)
-                if "response" in chunk:
-                    full_response.append(chunk["response"])
+                message = chunk.get("message", {})
+                content = message.get("content", "")
+                if content:
+                    full_response.append(content)
         return "".join(full_response)
 
     def list_models(self) -> list[str]:
@@ -343,10 +599,14 @@ class RAGPipeline:
         Returns:
             Dictionary with answer and metadata.
         """
+        # Correct typos in the question against the knowledge base vocabulary
+        question = QueryCorrector.correct(question, chatbot.knowledge_base)
+
         # Generate question embedding
         question_embedding = self.embedding_service.generate_embedding(
             question,
             model_name=chatbot.embedding_model,
+            is_query=True,
         )
 
         # Search for similar chunks
@@ -363,26 +623,29 @@ class RAGPipeline:
                 query_embedding=question_embedding,
                 knowledge_base_id=str(chatbot.knowledge_base.id),
                 top_k=3,
+                similarity_threshold=self.search_service.QA_SIMILARITY_THRESHOLD,
             )
 
         # Build context
         context = self._build_context(similar_chunks, qa_pairs)
 
-        # Build prompt
-        prompt = self._build_prompt(
+        # Build chat messages (budgeted to the chatbot's context window)
+        messages = self._build_messages(
             question=question,
             context=context,
+            system_prompt=chatbot.system_prompt,
             conversation_history=conversation_history,
+            max_context_tokens=chatbot.max_context_length,
         )
 
         # Generate answer
         answer = self.llm_service.generate(
-            prompt=prompt,
+            messages=messages,
             model=chatbot.llm_model,
-            system_prompt=chatbot.system_prompt,
             temperature=chatbot.temperature,
             top_p=chatbot.top_p,
-            max_tokens=chatbot.max_context_length,
+            max_tokens=DEFAULT_MAX_TOKENS,
+            num_ctx=max(4096, chatbot.max_context_length + DEFAULT_MAX_TOKENS),
         )
 
         return {
@@ -430,49 +693,83 @@ class RAGPipeline:
 
         return "\n".join(context_parts) if context_parts else "No relevant information found."
 
-    def _build_prompt(
+    def _build_messages(
         self,
         question: str,
         context: str,
+        system_prompt: str,
         conversation_history: list[dict] = None,
-    ) -> str:
+        max_context_tokens: int = 4096,
+    ) -> list[dict]:
         """
-        Build the prompt for the LLM.
+        Build a chat message list for the LLM.
+
+        Budgets history and retrieved context to stay within
+        ``max_context_tokens`` so nothing is silently truncated by the
+        model's context window. Most relevant (first) context is kept.
 
         Args:
             question: The user's question.
-            context: The context from knowledge base.
+            context: The context from the knowledge base.
+            system_prompt: The chatbot's system prompt.
             conversation_history: Optional conversation history.
+            max_context_tokens: Maximum input tokens for the model.
 
         Returns:
-            Formatted prompt string.
+            List of chat messages.
         """
-        prompt_parts = []
-
-        # Add conversation history if available
-        if conversation_history:
-            prompt_parts.append("Conversation history:")
-            for msg in conversation_history[-5:]:  # Last 5 messages
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-                prompt_parts.append(f"{role.title()}: {content}")
-            prompt_parts.append("")
-
-        # Add context
-        prompt_parts.append("Context from knowledge base:")
-        prompt_parts.append(context)
-        prompt_parts.append("")
-
-        # Add question
-        prompt_parts.append(f"Question: {question}")
-        prompt_parts.append("")
-        prompt_parts.append(
-            "Instructions: Answer the question based ONLY on the provided context. "
-            "If the answer is not in the context, say 'I don't know based on the provided knowledge.' "
+        instruction = (
+            "Use ONLY the provided context to answer the question. "
+            "If the answer is not in the context, say "
+            "'I don't know based on the provided knowledge.' "
             "Do not make up information or hallucinate."
         )
 
-        return "\n".join(prompt_parts)
+        system_tokens = estimate_tokens(system_prompt)
+        question_tokens = estimate_tokens(question)
+        instruction_tokens = estimate_tokens(instruction)
+
+        # Reserve a third of the budget for conversation history so it
+        # can't starve the retrieved context.
+        history_budget = max(
+            0,
+            (max_context_tokens - system_tokens - question_tokens - instruction_tokens) // 3,
+        )
+
+        history_messages = []
+        if conversation_history and history_budget > 0:
+            used = 0
+            for msg in reversed(conversation_history[-5:]):
+                content = msg.get("content", "")
+                role = msg.get("role", "user")
+                role = "assistant" if str(role).lower() == "assistant" else "user"
+                msg_tokens = estimate_tokens(content)
+                if used + msg_tokens > history_budget:
+                    break
+                history_messages.append({"role": role, "content": content})
+                used += msg_tokens
+            history_messages.reverse()
+
+        history_tokens = sum(estimate_tokens(m["content"]) for m in history_messages)
+        context_budget = max(
+            1,
+            max_context_tokens
+            - system_tokens
+            - question_tokens
+            - instruction_tokens
+            - history_tokens,
+        )
+        budgeted_context = truncate_to_tokens(context, context_budget)
+
+        user_content = (
+            f"Context from knowledge base:\n{budgeted_context}\n\n"
+            f"Question: {question}\n\n{instruction}"
+        )
+
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(history_messages)
+        messages.append({"role": "user", "content": user_content})
+        return messages
 
 
 def stream_chat_response(
@@ -515,12 +812,16 @@ def stream_chat_response(
         return
 
     try:
+        # Correct typos in the message against the knowledge base vocabulary
+        question = QueryCorrector.correct(message_content, chatbot.knowledge_base)
+
         embedding_service = EmbeddingService()
         search_service = VectorSearchService()
 
         question_embedding = embedding_service.generate_embedding(
-            message_content,
+            question,
             model_name=chatbot.embedding_model,
+            is_query=True,
         )
 
         similar_chunks = search_service.search_similar_chunks(
@@ -536,32 +837,36 @@ def stream_chat_response(
                 query_embedding=question_embedding,
                 knowledge_base_id=str(chatbot.knowledge_base.id),
                 top_k=3,
+                similarity_threshold=search_service.QA_SIMILARITY_THRESHOLD,
             )
 
         # Build context
         rag = RAGPipeline()
         context = rag._build_context(similar_chunks, qa_pairs)
 
-        # Build prompt
-        prompt = rag._build_prompt(
-            question=message_content,
+        # Build chat messages (budgeted to the chatbot's context window)
+        messages = rag._build_messages(
+            question=question,
             context=context,
+            system_prompt=chatbot.system_prompt,
             conversation_history=conversation_history,
+            max_context_tokens=chatbot.max_context_length,
         )
 
         # Stream response from Ollama
         ollama = OllamaService()
         full_response = []
 
-        url = f"{ollama.base_url}/api/generate"
+        url = f"{ollama.base_url}/api/chat"
         payload = {
             "model": chatbot.llm_model,
-            "prompt": prompt,
-            "system": chatbot.system_prompt,
+            "messages": messages,
             "stream": True,
             "options": {
                 "temperature": chatbot.temperature,
                 "top_p": chatbot.top_p,
+                "num_predict": DEFAULT_MAX_TOKENS,
+                "num_ctx": max(4096, chatbot.max_context_length + DEFAULT_MAX_TOKENS),
             },
         }
 
@@ -572,8 +877,8 @@ def stream_chat_response(
         for line in response.iter_lines():
             if line:
                 chunk = json.loads(line)
-                if "response" in chunk:
-                    token = chunk["response"]
+                token = chunk.get("message", {}).get("content", "")
+                if token:
                     full_response.append(token)
                     yield f"data: {json.dumps({'token': token})}\n\n"
 

@@ -55,11 +55,11 @@ class Chatbot(BaseModel):
         help_text="System prompt for the LLM.",
     )
     temperature = models.FloatField(
-        default=0.7,
+        default=0.2,
         help_text="Temperature for LLM generation (0.0 to 2.0).",
     )
     top_p = models.FloatField(
-        default=0.9,
+        default=0.5,
         help_text="Top P for LLM generation (0.0 to 1.0).",
     )
     max_context_length = models.IntegerField(
