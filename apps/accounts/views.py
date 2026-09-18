@@ -2,13 +2,15 @@
 Views for HelpDesk-AI accounts app.
 """
 
-from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import TemplateView, UpdateView
+
+from apps.chatbots.selectors import get_user_chatbots
 
 from .forms import UserProfileForm
 from .services import UserService
@@ -41,7 +43,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             conversation__is_active=True,
             conversation__user__isnull=False,
         ).count()
-        context["recent_chatbots"] = user.chatbots.all()[:5]
+        context["recent_chatbots"] = get_user_chatbots(user)[:5]
         return context
 
 

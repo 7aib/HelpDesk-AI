@@ -113,17 +113,58 @@ class ChatbotService:
     @staticmethod
     def delete_chatbot(chatbot: Chatbot) -> bool:
         """
-        Soft delete a chatbot.
-        
+        Delete a chatbot and purge its training data.
+
+        The chatbot row is soft deleted, but its knowledge base is
+        permanently removed (documents, embedded chunks, source files,
+        processing logs and QA pairs) so no orphaned training data is
+        left behind to create duplication later.
+
         Args:
             chatbot: The chatbot to delete.
             
         Returns:
             True if successful.
         """
+        ChatbotService.purge_training_data(chatbot)
         chatbot.soft_delete()
         logger.info(f"Chatbot deleted: {chatbot.name} (ID: {chatbot.id})")
         return True
+
+    @staticmethod
+    def purge_training_data(chatbot: Chatbot) -> None:
+        """
+        Permanently delete a chatbot's knowledge base and training data.
+
+        Removes every document (including soft-deleted ones) together with
+        its chunks/embeddings, source file and process logs, plus all QA
+        pairs, then deletes the knowledge base row itself. The chatbot row
+        is left in place for audit purposes.
+
+        Args:
+            chatbot: The chatbot whose training data should be purged.
+        """
+        from apps.documents.models import Document, DocumentChunk
+        from apps.knowledge.models import QAPair
+
+        knowledge_base = chatbot.knowledge_base
+        if knowledge_base is None:
+            return
+
+        documents = list(Document.objects.filter(knowledge_base=knowledge_base))
+        for document in documents:
+            DocumentChunk.objects.filter(document=document).delete()
+            if document.file:
+                document.file.delete(save=False)
+            document.delete()
+
+        QAPair.objects.filter(knowledge_base=knowledge_base).delete()
+        knowledge_base.delete()
+
+        logger.info(
+            f"Purged training data for chatbot {chatbot.name} "
+            f"(ID: {chatbot.id}): {len(documents)} documents"
+        )
 
     @staticmethod
     def get_chatbot_by_id(chatbot_id: str) -> Optional[Chatbot]:

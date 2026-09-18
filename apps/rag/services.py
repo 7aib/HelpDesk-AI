@@ -269,6 +269,14 @@ class EmbeddingService:
         if model_name is None:
             model_name = settings.DEFAULT_EMBEDDING_MODEL
 
+        # When a local model directory is configured (fully offline
+        # deployment), load the default BGE model straight from disk.
+        if (
+            settings.EMBEDDING_MODEL_DIR
+            and model_name == settings.DEFAULT_EMBEDDING_MODEL
+        ):
+            model_name = settings.EMBEDDING_MODEL_DIR
+
         if model_name not in _model_cache:
             logger.info(f"Loading embedding model: {model_name}")
             try:
@@ -383,6 +391,7 @@ class VectorSearchService:
         sql = """
             SELECT
                 dc.id,
+                dc.document_id,
                 dc.content,
                 dc.chunk_index,
                 dc.page_number,
@@ -461,6 +470,87 @@ class VectorSearchService:
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
         return results
+
+    @staticmethod
+    def expand_chunks(
+        chunks: list[dict[str, Any]],
+        surround: int = 1,
+    ) -> list[dict[str, Any]]:
+        """
+        Expand seed chunks with the chunks surrounding them in the same
+        document.
+
+        A retrieval hit is often a single line or fragment inside a larger
+        module. This pulls the ``surround`` chunks before and after each
+        seed so the whole section is available as context instead of just
+        the one matching line. Neighbors carry no similarity score.
+
+        Args:
+            chunks: Seed chunks from :meth:`search_similar_chunks`.
+            surround: How many chunks to include before/after each seed.
+
+        Returns:
+            Seed and neighbor chunks merged in document+index order.
+        """
+        if not chunks:
+            return chunks
+
+        from django.db import connection
+
+        seed_by_key = {
+            (chunk["document_id"], chunk["chunk_index"]): chunk
+            for chunk in chunks
+            if chunk.get("document_id") is not None
+        }
+
+        neighbor_by_key: dict[tuple, dict[str, Any]] = {}
+        with connection.cursor() as cursor:
+            for seed in sorted(
+                chunks,
+                key=lambda c: c.get("similarity") or 0,
+                reverse=True,
+            ):
+                doc_id = seed.get("document_id")
+                chunk_index = seed.get("chunk_index")
+                if doc_id is None or chunk_index is None:
+                    continue
+                cursor.execute(
+                    """
+                    SELECT
+                        dc.id,
+                        dc.document_id,
+                        dc.content,
+                        dc.chunk_index,
+                        dc.page_number,
+                        dc.metadata,
+                        d.title as document_title
+                    FROM documents_documentchunk dc
+                    JOIN documents_document d ON dc.document_id = d.id
+                    WHERE
+                        dc.document_id = %s
+                        AND dc.chunk_index BETWEEN %s AND %s
+                        AND d.is_deleted = false
+                        AND d.status = 'completed'
+                    ORDER BY dc.chunk_index ASC
+                    """,
+                    [
+                        doc_id,
+                        max(0, chunk_index - surround),
+                        chunk_index + surround,
+                    ],
+                )
+                columns = [col[0] for col in cursor.description]
+                for row in cursor.fetchall():
+                    item = dict(zip(columns, row))
+                    key = (item["document_id"], item["chunk_index"])
+                    if key not in seed_by_key:
+                        item["similarity"] = None
+                        neighbor_by_key[key] = item
+
+        merged = list(seed_by_key.values())
+        merged.extend(neighbor_by_key.values())
+        merged.sort(key=lambda c: (c.get("document_title", ""), c.get("chunk_index", 0)))
+        return merged
 
 
 class OllamaService:
@@ -616,6 +706,10 @@ class RAGPipeline:
             top_k=chatbot.top_k,
         )
 
+        # Expand seeds with surrounding chunks so whole modules are included
+        if similar_chunks:
+            similar_chunks = self.search_service.expand_chunks(similar_chunks)
+
         # Also search Q&A pairs
         qa_pairs = []
         if chatbot.knowledge_base:
@@ -672,16 +766,24 @@ class RAGPipeline:
         """
         context_parts = []
 
-        # Add document chunks
+        # Add document chunks (expanded chunks arrive grouped by document
+        # and in chunk order, so the module reads sequentially)
         if chunks:
             context_parts.append("Relevant information from knowledge base:")
-            for i, chunk in enumerate(chunks, 1):
+            current_source = None
+            for chunk in chunks:
                 source = chunk.get("document_title", "Unknown")
                 content = chunk.get("content", "")
-                similarity = chunk.get("similarity", 0)
-                context_parts.append(
-                    f"\n[Source: {source} (Relevance: {similarity:.2f})]\n{content}"
+                if not content:
+                    continue
+                if source != current_source:
+                    context_parts.append(f"\n===== {source} =====")
+                    current_source = source
+                similarity = chunk.get("similarity")
+                relevance = (
+                    f" (Relevance: {similarity:.2f})" if similarity is not None else ""
                 )
+                context_parts.append(f"\n{content}{relevance}")
 
         # Add Q&A pairs
         if qa_pairs:
@@ -829,6 +931,10 @@ def stream_chat_response(
             chatbot_id=str(chatbot.id),
             top_k=chatbot.top_k,
         )
+
+        # Expand seeds with surrounding chunks so whole modules are included
+        if similar_chunks:
+            similar_chunks = search_service.expand_chunks(similar_chunks)
 
         # Also search Q&A pairs
         qa_pairs = []

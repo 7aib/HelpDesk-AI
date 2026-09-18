@@ -13,6 +13,23 @@ from apps.rag.services import TOKENS_PER_WORD
 
 logger = logging.getLogger(__name__)
 
+# PDF fonts often map ligature glyphs to unrelated Unicode characters
+# (e.g. "tion" -> "Ɵ on", "Software" -> "SoŌ ware"). Translating them back
+# to the ASCII text they represent keeps embedded content searchable, so a
+# user typing "registration" matches stored text "registraƟ on".
+PDF_GLYPH_FIXES = {
+    "\u019f": "ti",  # Ɵ ti ligature
+    "\u014c": "ft",  # Ō ft ligature
+    "\u01a9": "tt",  # Ʃ tt ligature
+    "\u01ab": "tti",  # ƫ tri-glyph ("setting", "getting")
+    "\ufb00": "ff",  # ﬀ ff ligature
+    "\ufb01": "fi",  # ﬁ fi ligature
+    "\ufb02": "fl",  # ﬂ fl ligature
+    "\ufb03": "ffi",  # ﬃ ffi ligature
+    "\ufb04": "ffl",  # ﬄ ffl ligature
+    "\u00ac": "-",  # ¬ line-breaking hyphen artifact
+}
+
 
 class DocumentProcessingService:
     """
@@ -207,6 +224,14 @@ class DocumentProcessingService:
 
         # Normalize line endings
         text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # PDF extractors insert spaces around ligature glyphs
+        # ("regulaƟ ons") that must be removed before translation.
+        glyphs = "".join(PDF_GLYPH_FIXES)
+        text = re.sub(f"([{glyphs}])\\s+(?=\\w)", r"\1", text)
+
+        # Decode ligature artifacts introduced by PDF fonts
+        text = text.translate(str.maketrans(PDF_GLYPH_FIXES))
 
         # Collapse runs of spaces/tabs within a line, keep newlines
         text = re.sub(r"[ \t]+", " ", text)

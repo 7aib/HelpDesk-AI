@@ -8,6 +8,14 @@ from typing import Any
 
 import environ
 
+# Force HuggingFace/transformers/SentenceTransformers to operate fully
+# offline. Embedding models are expected to be pre-cached locally (see the
+# offline setup docs); with these set, the libraries never attempt to
+# download weights from the HuggingFace Hub at runtime.
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -221,6 +229,12 @@ CACHES = {
 OLLAMA_URL = env("OLLAMA_URL", default="http://localhost:11434")
 DEFAULT_LLM = env("DEFAULT_LLM", default="llama3.2")
 DEFAULT_EMBEDDING_MODEL = env("DEFAULT_EMBEDDING_MODEL", default="BAAI/bge-small-en-v1.5")
+
+# Optional local path to a pre-downloaded embedding model directory. When
+# set, the default BGE model is loaded from disk instead of the HuggingFace
+# cache, making the app usable on machines with no Hub cache and no
+# connectivity (the app already forces HF offline mode).
+EMBEDDING_MODEL_DIR = env("EMBEDDING_MODEL_DIR", default="")
 
 # Logging Configuration
 LOGGING = {
