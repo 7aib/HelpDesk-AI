@@ -1,8 +1,8 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Chatbot - {{ app_name }}{% endblock %}
+{% block title %}{% if is_edit %}Edit{% else %}Create{% endif %} Chatbot - {{ app_name }}{% endblock %}
 
-{% block page_title %}{% if form.instance.pk %}Edit Chatbot{% else %}Create Chatbot{% endif %}{% endblock %}
+{% block page_title %}{% if is_edit %}Edit Chatbot{% else %}Create Chatbot{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -133,10 +133,10 @@
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary px-4">
-                    <i class="bi bi-check-lg me-1"></i> {% if form.instance.pk %}Save Changes{% else %}Create Chatbot{% endif %}
+                    <i class="bi bi-check-lg me-1"></i> {% if is_edit %}Save Changes{% else %}Create Chatbot{% endif %}
                 </button>
                 <a href="{% url 'chatbots:list' %}" class="btn btn-outline-secondary">Cancel</a>
-                {% if form.instance.pk %}
+                {% if is_edit %}
                 <a href="{% url 'chatbots:ui_customization' form.instance.pk %}" class="btn btn-outline-secondary">
                     <i class="bi bi-palette me-1"></i> Customize Widget
                 </a>

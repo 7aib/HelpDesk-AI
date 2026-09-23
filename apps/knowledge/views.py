@@ -128,6 +128,7 @@ class QAPairCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["is_edit"] = False
         context["knowledge_base"] = get_object_or_404(
             KnowledgeBase,
             id=self.kwargs["kb_id"],
@@ -178,6 +179,7 @@ class QAPairUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["is_edit"] = True
         context["knowledge_base"] = self.object.knowledge_base
         return context
 

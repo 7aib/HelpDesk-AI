@@ -63,6 +63,11 @@ class ChatbotCreateView(LoginRequiredMixin, CreateView):
     form_class = ChatbotForm
     success_url = reverse_lazy("chatbots:list")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = False
+        return context
+
     def form_valid(self, form):
         """Set the owner to the current user and create knowledge base."""
         user = self.request.user
@@ -116,6 +121,11 @@ class ChatbotUpdateView(LoginRequiredMixin, UpdateView):
     model = Chatbot
     template_name = "chatbots/chatbot_form.html"
     form_class = ChatbotForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = True
+        return context
 
     def get_success_url(self):
         """Redirect to chatbot detail."""
